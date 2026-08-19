@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.util.DateUtils
+import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.tr
 import java.time.LocalDate
 
@@ -101,7 +102,7 @@ fun EditDayModal(
                         onClick = { selectedShiftType = type }
                     )
                     Text(
-                        text = type.emoji + " " + type.displayName,
+                        text = type.emoji + " " + type.displayName(LocalLang.current),
                         modifier = Modifier.padding(start = 8.dp),
                         style = MaterialTheme.typography.bodyLarge
                     )

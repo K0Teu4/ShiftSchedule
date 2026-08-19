@@ -1,5 +1,7 @@
 package com.shiftschedule.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,19 +17,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.ShiftType
-import com.shiftschedule.app.ui.theme.SharedDayOff
-import com.shiftschedule.app.ui.theme.TextSecondary
 import com.shiftschedule.app.util.DateUtils
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -38,35 +40,33 @@ fun DayCell(
     isToday: Boolean,
     isCurrentMonth: Boolean,
     showEmoji: Boolean,
-    isSharedDayOff: Boolean,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
+    onClick: () -> Unit = {},
     onLongClick: () -> Unit = {}
 ) {
     val haptics = LocalHapticFeedback.current
-
-    val backgroundColor = when {
-        !isCurrentMonth -> Color.Transparent
-        shiftType != null -> shiftType.color.copy(alpha = 0.3f)
+    val targetBg = when {
+        !isCurrentMonth -> MaterialTheme.colorScheme.background
+        shiftType != null -> shiftType.color.copy(alpha = 0.25f)
         else -> MaterialTheme.colorScheme.surface
     }
-
-    val borderColor = when {
-        isSharedDayOff -> SharedDayOff
-        isToday -> MaterialTheme.colorScheme.primary
-        else -> Color.Transparent
-    }
-
+    val bgColor by animateColorAsState(
+        targetValue = targetBg,
+        animationSpec = tween(300),
+        label = "dayBg"
+    )
+    val borderColor = if (isToday) MaterialTheme.colorScheme.primary else Color.Transparent
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .background(backgroundColor, RoundedCornerShape(8.dp))
-            .border(2.dp, borderColor, RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
+            .background(bgColor, RoundedCornerShape(10.dp))
+            .border(2.dp, borderColor, RoundedCornerShape(10.dp))
             .semantics {
                 contentDescription = buildString {
                     append(day.toString())
                     if (shiftType != null) append(", " + shiftType.displayName)
-                    if (isToday) append(", сегодня")
+                    if (isToday) append(", today")
                 }
             }
             .combinedClickable(
@@ -78,33 +78,24 @@ fun DayCell(
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                     onLongClick()
                 }
-            )
-            .padding(4.dp),
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = day.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                color = if (isCurrentMonth) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                }
             )
-
-            if (shiftType != null && isCurrentMonth) {
+            if (shiftType != null) {
                 Text(
-                    text = if (showEmoji) shiftType.emoji else shiftType.letter,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            if (isSharedDayOff) {
-                Text(
-                    text = "✦",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SharedDayOff
+                    text = if (showEmoji) shiftType.emoji else shiftType.displayName.take(1),
+                    fontSize = 12.sp
                 )
             }
         }
@@ -120,11 +111,10 @@ fun WeekHeader(weekStart: String, lang: String = "ru", modifier: Modifier = Modi
         DateUtils.weekDayHeaders(weekStart, lang).forEach { day ->
             Text(
                 text = day,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }

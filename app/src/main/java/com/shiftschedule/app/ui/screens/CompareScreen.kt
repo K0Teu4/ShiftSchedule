@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -85,6 +86,7 @@ fun CompareScreen(viewModel: ShiftViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .widthIn(max = 900.dp)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
                 .pointerInput(Unit) {
@@ -206,7 +208,8 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                     viewModel = viewModel,
                     year = currentMonth.year,
                     scheduleIds = selectedCompareIds.toList(),
-                    sharedLabel = selectedSchedules.size >= 2
+                    sharedLabel = selectedSchedules.size >= 2,
+                    schedules = selectedSchedules
                 )
             } else {
                 if (selectedSchedules.size >= 2) {
@@ -300,10 +303,12 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             StatRow(tr("total_off"), stats["total_off"] ?: 0)
                             StatRow(tr("total_day"), stats["total_day"] ?: 0)
                             StatRow(tr("total_night"), stats["total_night"] ?: 0)
+                            StatRow(tr("total_holiday"), stats["total_holiday"] ?: 0)
                         } else {
                             StatRow(tr("shared_off") + " ✦", stats["shared_off"] ?: 0)
                             StatRow(tr("total_day"), stats["total_day"] ?: 0)
                             StatRow(tr("total_night"), stats["total_night"] ?: 0)
+                            StatRow(tr("total_holiday"), stats["total_holiday"] ?: 0)
                             StatRow(tr("all_working"), stats["all_working"] ?: 0)
                         }
 
@@ -383,7 +388,8 @@ private fun YearReport(
     viewModel: ShiftViewModel,
     year: Int,
     scheduleIds: List<Int>,
-    sharedLabel: Boolean
+    sharedLabel: Boolean,
+    schedules: List<Schedule>
 ) {
     val totals = viewModel.getYearStats(scheduleIds, year)
 
@@ -407,7 +413,51 @@ private fun YearReport(
                 YearTotal("☀️", totals["total_day"] ?: 0)
                 YearTotal("🌙", totals["total_night"] ?: 0)
                 YearTotal("🏠", totals["total_off"] ?: 0)
+                YearTotal("🎉", totals["total_holiday"] ?: 0)
                 if (sharedLabel) YearTotal("✦", totals["shared_off"] ?: 0)
+            }
+        }
+    }
+
+    if (schedules.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            tr("year_by_schedule"),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        schedules.forEach { schedule ->
+            val s = viewModel.getYearStats(listOf(schedule.id), year)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(schedule.color)))
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        schedule.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "☀️ ${s["total_day"] ?: 0} · 🌙 ${s["total_night"] ?: 0} · 🏠 ${s["total_off"] ?: 0} · 🎉 ${s["total_holiday"] ?: 0}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     }

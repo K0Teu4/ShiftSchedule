@@ -4,35 +4,30 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/widget_background"
-    android:padding="14dp">
+    android:padding="12dp"
+    android:background="#D91A1A1A">
 
     <TextView
         android:id="@+id/widget_title"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Смены сегодня"
-        android:textColor="#FFFFFFFF"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="#FFFFFFFF" />
 
     <TextView
         android:id="@+id/widget_date"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="#FFD7E1EC"
+        android:layout_marginTop="2dp"
         android:textSize="12sp"
-        android:layout_marginTop="2dp" />
+        android:textColor="#BFBFBF" />
 
     <TextView
         android:id="@+id/widget_status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Нет графиков"
-        android:textColor="#FFFFFFFF"
-        android:textSize="13sp"
-        android:maxLines="8"
-        android:layout_marginTop="6dp" />
-
+        android:layout_marginTop="8dp"
+        android:textSize="14sp"
+        android:textColor="#FFFFFFFF" />
 </LinearLayout>

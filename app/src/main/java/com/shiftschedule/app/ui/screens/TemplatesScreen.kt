@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -118,6 +119,7 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .widthIn(max = 900.dp)
                 .padding(16.dp)
         ) {
             ScreenHeader(
@@ -202,6 +204,11 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
                     TemplateCard(
                         template = template,
                         onEdit = { templateToEdit = template },
+                        onCopy = {
+                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            viewModel.duplicateTemplate(template)
+                            scope.launch { snackbarHostState.showSnackbar(copyCreatedMsg) }
+                        },
                         onDelete = null
                     )
                 }
@@ -227,6 +234,11 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
                                     enabled = !searchActive
                                 ),
                                 onEdit = { templateToEdit = template },
+                                onCopy = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    viewModel.duplicateTemplate(template)
+                                    scope.launch { snackbarHostState.showSnackbar(copyCreatedMsg) }
+                                },
                                 onDelete = { templateToDelete = template }
                             )
                         }
@@ -439,6 +451,7 @@ private fun TemplateCard(
     template: Template,
     modifier: Modifier = Modifier,
     onEdit: () -> Unit,
+    onCopy: (() -> Unit)? = null,
     onDelete: (() -> Unit)?
 ) {
     Card(
@@ -468,6 +481,11 @@ private fun TemplateCard(
                 }
                 IconButton(onClick = onEdit) {
                     Icon(Icons.Filled.Edit, contentDescription = tr("edit"))
+                }
+                if (onCopy != null) {
+                    IconButton(onClick = onCopy) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = tr("copy"))
+                    }
                 }
                 if (onDelete != null) {
                     IconButton(onClick = onDelete) {

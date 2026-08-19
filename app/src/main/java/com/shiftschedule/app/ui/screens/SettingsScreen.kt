@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -54,7 +55,6 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
     val versionName = remember(context) {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0"
@@ -62,13 +62,11 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             "1.0"
         }
     }
-
     val exportedMsg = tr("exported")
     val exportErrMsg = tr("export_error")
     val importedMsg = tr("imported")
     val importBadMsg = tr("import_bad")
     val importErrMsg = tr("import_error")
-
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
@@ -86,7 +84,6 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             }
         }
     }
-
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -104,7 +101,6 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             }
         }
     }
-
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { paddingValues ->
         Column(
             modifier = Modifier
@@ -117,7 +113,6 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                 title = tr("tab_settings"),
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -133,10 +128,10 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ThemeChip("dark", tr("theme_dark"), settings.theme) {
+                        ThemeChip("dark", tr("theme_dark"), settings.theme, modifier = Modifier.weight(1f)) {
                             viewModel.updateSettings(settings.copy(theme = it))
                         }
-                        ThemeChip("light", tr("theme_light"), settings.theme) {
+                        ThemeChip("light", tr("theme_light"), settings.theme, modifier = Modifier.weight(1f)) {
                             viewModel.updateSettings(settings.copy(theme = it))
                         }
                     }
@@ -145,18 +140,16 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ThemeChip("sepia", tr("theme_sepia"), settings.theme) {
+                        ThemeChip("sepia", tr("theme_sepia"), settings.theme, modifier = Modifier.weight(1f)) {
                             viewModel.updateSettings(settings.copy(theme = it))
                         }
-                        ThemeChip("midnight", tr("theme_midnight"), settings.theme) {
+                        ThemeChip("midnight", tr("theme_midnight"), settings.theme, modifier = Modifier.weight(1f)) {
                             viewModel.updateSettings(settings.copy(theme = it))
                         }
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -198,9 +191,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -232,9 +223,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -262,9 +251,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -304,7 +291,6 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             }
         }
     }
-
     if (showTimeDialog) {
         var timeInput by remember { mutableStateOf(settings.reminderTime) }
         AlertDialog(
@@ -356,11 +342,10 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 }
 
 @Composable
-private fun ThemeChip(id: String, label: String, current: String, onSelect: (String) -> Unit) {
+private fun ThemeChip(id: String, label: String, current: String, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
     val selected = current == id
     Box(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(
                 if (selected) MaterialTheme.colorScheme.primary

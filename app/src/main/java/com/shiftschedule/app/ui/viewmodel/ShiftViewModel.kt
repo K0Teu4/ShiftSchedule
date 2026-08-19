@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.viewmodel
+﻿package com.shiftschedule.app.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
-// ИСПРАВЛЕНИЕ КРАША: Удален @JvmOverloads, так как он ломает рефлексию ViewModelProvider
+// ВНИМАНИЕ: @JvmOverloads УДАЛЕН, так как он ломает стандартную рефлексию ViewModelProvider
 class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = ShiftRepository(ShiftDatabase.getDatabase(application).shiftDao())
@@ -82,6 +82,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSearchQuery(q: String) { _searchQuery.value = q }
     fun selectSchedule(id: Int?) { _selectedScheduleId.value = id }
+    
     fun toggleCompareSchedule(id: Int) {
         val current = _selectedCompareIds.value.toMutableSet()
         if (current.contains(id)) { if (current.size > 1) current.remove(id) } else { current.add(id) }
@@ -110,6 +111,22 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
                 val maxIndex = repository.getMaxScheduleSortIndex()
                 repository.insertSchedule(schedule.copy(id = 0, name = schedule.name + " (копия)", sortIndex = maxIndex + 1))
                 refreshWidget()
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    fun duplicateTemplate(template: Template) {
+        viewModelScope.launch {
+            try {
+                val maxIndex = repository.getMaxTemplateSortIndex()
+                repository.insertTemplate(
+                    template.copy(
+                        id = 0,
+                        name = template.name + " (копия)",
+                        isBuiltIn = false,
+                        sortIndex = maxIndex + 1
+                    )
+                )
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
@@ -202,7 +219,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun isTipSeen(id: String): Boolean = settings.value.seenTips.split(",").contains(id)
-
+    
     fun markTipSeen(id: String) {
         val current = settings.value.seenTips
         val new = if (current.isBlank()) id else current + "," + id

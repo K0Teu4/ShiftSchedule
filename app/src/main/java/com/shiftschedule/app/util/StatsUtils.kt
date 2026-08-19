@@ -17,6 +17,7 @@ object StatsUtils {
             "total_off" to 0,
             "total_day" to 0,
             "total_night" to 0,
+            "total_holiday" to 0,
             "shared_off" to 0,
             "all_working" to 0
         )
@@ -29,10 +30,12 @@ object StatsUtils {
             val offCount = codes.count { it == "O" }
             val dayCount = codes.count { it == "D" }
             val nightCount = codes.count { it == "N" }
+            val holidayCount = codes.count { it == "H" }
 
             stats["total_off"] = stats["total_off"]!! + offCount
             stats["total_day"] = stats["total_day"]!! + dayCount
             stats["total_night"] = stats["total_night"]!! + nightCount
+            stats["total_holiday"] = stats["total_holiday"]!! + holidayCount
             if (selected.isNotEmpty() && offCount == selected.size) stats["shared_off"] = stats["shared_off"]!! + 1
             if (selected.isNotEmpty() && dayCount + nightCount == selected.size) stats["all_working"] = stats["all_working"]!! + 1
         }
@@ -47,7 +50,8 @@ object StatsUtils {
         year: Int
     ): Map<String, Int> {
         val totals = mutableMapOf(
-            "total_off" to 0, "total_day" to 0, "total_night" to 0, "shared_off" to 0, "all_working" to 0
+            "total_off" to 0, "total_day" to 0, "total_night" to 0,
+            "total_holiday" to 0, "shared_off" to 0, "all_working" to 0
         )
         for (month in 1..12) {
             val m = monthStats(schedules, templates, scheduleIds, YearMonth.of(year, month))
