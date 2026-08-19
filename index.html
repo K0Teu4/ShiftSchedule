@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Schedule - Интерактивный макет</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #0a0a0a;
+            border: 3px solid #333;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            border-radius: 30px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .screen-content {
+            display: none;
+        }
+
+        .screen-content.active {
+            display: block;
+        }
+
+        .week-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .week-header span {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #888;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            background: #1a1a1a;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            position: relative;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .day-cell:active {
+            transform: scale(0.95);
+        }
+
+        .day-cell.today {
+            border-color: #5856d6;
+        }
+
+        .day-cell.day-shift {
+            background: rgba(52, 199, 89, 0.3);
+        }
+
+        .day-cell.night-shift {
+            background: rgba(88, 86, 214, 0.3);
+        }
+
+        .day-cell.off-shift {
+            background: rgba(255, 149, 0, 0.3);
+        }
+
+        .day-cell .emoji {
+            font-size: 18px;
+            margin-top: 2px;
+        }
+
+        .card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 12px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat .value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .stat .label {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .stat.day .value { color: #34c759; }
+        .stat.night .value { color: #5856d6; }
+        .stat.off .value { color: #ff9500; }
+
+        .tab-bar {
+            display: flex;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+            padding: 8px 0;
+        }
+
+        .tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            color: #888;
+            font-size: 11px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .tab.active {
+            color: #5856d6;
+        }
+
+        .tab-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .fab {
+            position: absolute;
+            bottom: 80px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #5856d6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 12px rgba(88, 86, 214, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .fab:active {
+            transform: scale(0.9);
+        }
+
+        .sector-cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .sector-cell.half {
+            background: linear-gradient(to right, #34c759 50%, #5856d6 50%);
+        }
+
+        .sector-cell.quarter {
+            background: linear-gradient(to right, #34c759 25%, #5856d6 25%, #5856d6 50%, #ff9500 50%, #ff9500 75%, #ff3b30 75%);
+        }
+
+        .sector-cell .day-num {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1;
+        }
+
+        .shared-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            color: #fff8dc;
+            font-size: 14px;
+        }
+
+        .template-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .template-card h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .template-card p {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        .pattern-preview {
+            display: flex;
+            gap: 4px;
+        }
+
+        .pattern-block {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .pattern-block.day { background: rgba(52, 199, 89, 0.3); }
+        .pattern-block.night { background: rgba(88, 86, 214, 0.3); }
+        .pattern-block.off { background: rgba(255, 149, 0, 0.3); }
+
+        .settings-section {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .settings-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .setting-row .label {
+            font-size: 14px;
+        }
+
+        .setting-row .desc {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .switch {
+            width: 44px;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .switch.active {
+            background: #5856d6;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .switch.active::after {
+            transform: translateX(20px);
+        }
+
+        .modal {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 320px;
+        }
+
+        .modal-content h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        .modal-content input, .modal-content select {
+            width: 100%;
+            padding: 12px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .modal-content button {
+            width: 100%;
+            padding: 12px;
+            background: #5856d6;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .modal-content button.secondary {
+            background: transparent;
+            border: 1px solid #333;
+        }
+
+        .compare-stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .compare-stats:last-child {
+            border-bottom: none;
+        }
+
+        .checkbox-group {
+            margin: 12px 0;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            cursor: pointer;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checkbox.checked {
+            background: #5856d6;
+            border-color: #5856d6;
+        }
+
+        .checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="screen">
+            <div class="header">
+                <h1 id="screen-title">Август 2026</h1>
+                <p id="screen-subtitle" onclick="showSchedulePicker()">Мой график ▾</p>
+            </div>
+
+            <div class="content">
+                <!-- Календарь -->
+                <div id="calendar-screen" class="screen-content active">
+                    <div class="card">
+                        <h3>Сегодня: ☀️ День</h3>
+                        <div class="stats">
+                            <div class="stat day">
+                                <div class="value">12</div>
+                                <div class="label">Дней</div>
+                            </div>
+                            <div class="stat night">
+                                <div class="value">8</div>
+                                <div class="label">Ночей</div>
+                            </div>
+                            <div class="stat off">
+                                <div class="value">11</div>
+                                <div class="label">Вых.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="week-header">
+                        <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                    </div>
+
+                    <div class="calendar-grid">
+                        <div class="day-cell"></div>
+                        <div class="day-cell"></div>
+                        <div class="day-cell"></div>
+                        <div class="day-cell"></div>
+                        <div class="day-cell"></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(1)">1<span class="emoji">🏠</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(2)">2<span class="emoji">🏠</span></div>
+                        
+                        <div class="day-cell day-shift today" onclick="showEditModal(3)">3<span class="emoji">☀️</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(4)">4<span class="emoji">☀️</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(5)">5<span class="emoji">🌙</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(6)">6<span class="emoji">🌙</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(7)">7<span class="emoji">🏠</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(8)">8<span class="emoji">🏠</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(9)">9<span class="emoji">☀️</span></div>
+                        
+                        <div class="day-cell day-shift" onclick="showEditModal(10)">10<span class="emoji">☀️</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(11)">11<span class="emoji">🌙</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(12)">12<span class="emoji">🌙</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(13)">13<span class="emoji">🏠</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(14)">14<span class="emoji">🏠</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(15)">15<span class="emoji">☀️</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(16)">16<span class="emoji">☀️</span></div>
+                        
+                        <div class="day-cell night-shift" onclick="showEditModal(17)">17<span class="emoji">🌙</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(18)">18<span class="emoji">🌙</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(19)">19<span class="emoji">🏠</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(20)">20<span class="emoji">🏠</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(21)">21<span class="emoji">☀️</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(22)">22<span class="emoji">☀️</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(23)">23<span class="emoji">🌙</span></div>
+                        
+                        <div class="day-cell night-shift" onclick="showEditModal(24)">24<span class="emoji">🌙</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(25)">25<span class="emoji">🏠</span></div>
+                        <div class="day-cell off-shift" onclick="showEditModal(26)">26<span class="emoji">🏠</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(27)">27<span class="emoji">☀️</span></div>
+                        <div class="day-cell day-shift" onclick="showEditModal(28)">28<span class="emoji">☀️</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(29)">29<span class="emoji">🌙</span></div>
+                        <div class="day-cell night-shift" onclick="showEditModal(30)">30<span class="emoji">🌙</span></div>
+                        
+                        <div class="day-cell off-shift" onclick="showEditModal(31)">31<span class="emoji">🏠</span></div>
+                    </div>
+                </div>
+
+                <!-- Шаблоны -->
+                <div id="templates-screen" class="screen-content">
+                    <h2 style="font-size: 20px; margin-bottom: 16px;">Встроенные шаблоны</h2>
+                    
+                    <div class="template-card">
+                        <h4>2-2-2</h4>
+                        <p>2 день, 2 ночь, 2 выходных</p>
+                        <div class="pattern-preview">
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block night">🌙</div>
+                            <div class="pattern-block night">🌙</div>
+                            <div class="pattern-block off">🏠</div>
+                            <div class="pattern-block off">🏠</div>
+                        </div>
+                    </div>
+
+                    <div class="template-card">
+                        <h4>1-1-1</h4>
+                        <p>1 день, 1 ночь, 1 выходной</p>
+                        <div class="pattern-preview">
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block night">🌙</div>
+                            <div class="pattern-block off">🏠</div>
+                        </div>
+                    </div>
+
+                    <div class="template-card">
+                        <h4>5-2</h4>
+                        <p>5 дней, 2 выходных</p>
+                        <div class="pattern-preview">
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block day">☀️</div>
+                            <div class="pattern-block off">🏠</div>
+                            <div class="pattern-block off">🏠</div>
+                        </div>
+                    </div>
+
+                    <h2 style="font-size: 20px; margin: 20px 0 16px;">Пользовательские шаблоны</h2>
+                    
+                    <div class="card" style="text-align: center; padding: 24px;">
+                        <p style="color: #888; margin-bottom: 12px;">Нет пользовательских шаблонов</p>
+                        <button onclick="showCreateTemplateModal()" style="padding: 10px 20px; background: transparent; border: 1px solid #5856d6; color: #5856d6; border-radius: 8px; cursor: pointer;">+ Создать</button>
+                    </div>
+                </div>
+
+                <!-- Сравнить -->
+                <div id="compare-screen" class="screen-content">
+                    <div class="week-header">
+                        <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                    </div>
+
+                    <div class="calendar-grid">
+                        <div class="sector-cell half" onclick="showCompareDetail(3)"><div class="day-num">3</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(4)"><div class="day-num">4</div></div>
+                        <div class="sector-cell" style="background: #34c759;" onclick="showCompareDetail(5)"><div class="day-num">5</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(6)"><div class="day-num">6</div></div>
+                        <div class="sector-cell" style="background: #5856d6;" onclick="showCompareDetail(7)"><div class="day-num">7</div></div>
+                        <div class="sector-cell off-shift" onclick="showCompareDetail(8)"><div class="day-num">8</div><span class="shared-badge">✦</span></div>
+                        <div class="sector-cell off-shift" onclick="showCompareDetail(9)"><div class="day-num">9</div><span class="shared-badge">✦</span></div>
+                        
+                        <div class="sector-cell half" onclick="showCompareDetail(10)"><div class="day-num">10</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(11)"><div class="day-num">11</div></div>
+                        <div class="sector-cell" style="background: #ff9500;" onclick="showCompareDetail(12)"><div class="day-num">12</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(13)"><div class="day-num">13</div></div>
+                        <div class="sector-cell" style="background: #34c759;" onclick="showCompareDetail(14)"><div class="day-num">14</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(15)"><div class="day-num">15</div></div>
+                        <div class="sector-cell" style="background: #5856d6;" onclick="showCompareDetail(16)"><div class="day-num">16</div></div>
+                        
+                        <div class="sector-cell off-shift" onclick="showCompareDetail(17)"><div class="day-num">17</div><span class="shared-badge">✦</span></div>
+                        <div class="sector-cell off-shift" onclick="showCompareDetail(18)"><div class="day-num">18</div><span class="shared-badge">✦</span></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(19)"><div class="day-num">19</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(20)"><div class="day-num">20</div></div>
+                        <div class="sector-cell" style="background: #ff9500;" onclick="showCompareDetail(21)"><div class="day-num">21</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(22)"><div class="day-num">22</div></div>
+                        <div class="sector-cell" style="background: #34c759;" onclick="showCompareDetail(23)"><div class="day-num">23</div></div>
+                        
+                        <div class="sector-cell half" onclick="showCompareDetail(24)"><div class="day-num">24</div></div>
+                        <div class="sector-cell" style="background: #5856d6;" onclick="showCompareDetail(25)"><div class="day-num">25</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(26)"><div class="day-num">26</div></div>
+                        <div class="sector-cell" style="background: #ff9500;" onclick="showCompareDetail(27)"><div class="day-num">27</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(28)"><div class="day-num">28</div></div>
+                        <div class="sector-cell" style="background: #34c759;" onclick="showCompareDetail(29)"><div class="day-num">29</div></div>
+                        <div class="sector-cell half" onclick="showCompareDetail(30)"><div class="day-num">30</div></div>
+                        
+                        <div class="sector-cell off-shift" onclick="showCompareDetail(31)"><div class="day-num">31</div><span class="shared-badge">✦</span></div>
+                    </div>
+
+                    <div class="card" style="margin-top: 16px;">
+                        <h3>Графики</h3>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item" onclick="toggleCheckbox(this)">
+                                <div class="checkbox checked"></div>
+                                <span>Мой график</span>
+                            </div>
+                            <div class="checkbox-item" onclick="toggleCheckbox(this)">
+                                <div class="checkbox checked"></div>
+                                <span>График жены</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Статистика</h3>
+                        <div class="compare-stats">
+                            <span>Общих выходных ✦</span>
+                            <span style="font-weight: 700;">4</span>
+                        </div>
+                        <div class="compare-stats">
+                            <span>Дневных смен</span>
+                            <span style="font-weight: 700;">12</span>
+                        </div>
+                        <div class="compare-stats">
+                            <span>Ночных смен</span>
+                            <span style="font-weight: 700;">8</span>
+                        </div>
+                        <div class="compare-stats">
+                            <span>Все на работе</span>
+                            <span style="font-weight: 700;">15</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Настройки -->
+                <div id="settings-screen" class="screen-content">
+                    <div class="settings-section">
+                        <h3>Уведомления</h3>
+                        <div class="setting-row">
+                            <div>
+                                <div class="label">Напоминания</div>
+                                <div class="desc">Уведомлять о смене</div>
+                            </div>
+                            <div class="switch active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+                        <div class="setting-row">
+                            <div>
+                                <div class="label">Время напоминания</div>
+                                <div class="desc">19:00</div>
+                            </div>
+                            <button onclick="showTimeModal()" style="padding: 8px 16px; background: transparent; border: 1px solid #5856d6; color: #5856d6; border-radius: 8px; cursor: pointer; font-size: 13px;">Изменить</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Отображение</h3>
+                        <div class="setting-row">
+                            <div>
+                                <div class="label">Эмодзи в клетках</div>
+                                <div class="desc">Иначе: Д/Н/В/Б/О</div>
+                            </div>
+                            <div class="switch active" onclick="this.classList.toggle('active')"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Первый день недели</h3>
+                        <div class="setting-row">
+                            <div class="label">Понедельник</div>
+                            <input type="radio" name="weekStart" checked style="width: 20px; height: 20px;">
+                        </div>
+                        <div class="setting-row">
+                            <div class="label">Воскресенье</div>
+                            <input type="radio" name="weekStart" style="width: 20px; height: 20px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fab" onclick="showCreateScheduleModal()">+</div>
+
+            <div class="tab-bar">
+                <div class="tab active" onclick="switchTab('calendar', this)">
+                    <div class="tab-icon">📅</div>
+                    Календарь
+                </div>
+                <div class="tab" onclick="switchTab('templates', this)">
+                    <div class="tab-icon">📋</div>
+                    Шаблоны
+                </div>
+                <div class="tab" onclick="switchTab('compare', this)">
+                    <div class="tab-icon">⚖️</div>
+                    Сравнить
+                </div>
+                <div class="tab" onclick="switchTab('settings', this)">
+                    <div class="tab-icon">⚙️</div>
+                    Настройки
+                </div>
+            </div>
+        </div>
+
+        <!-- Модалки -->
+        <div id="edit-modal" class="modal" onclick="closeModal(event, 'edit-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h2>Редактировать день</h2>
+                <select>
+                    <option>☀️ День</option>
+                    <option>🌙 Ночь</option>
+                    <option>🏠 Выходной</option>
+                    <option>🤒 Больничный</option>
+                    <option>🌴 Отпуск</option>
+                </select>
+                <button onclick="closeModalById('edit-modal')">Сохранить</button>
+                <button class="secondary" onclick="closeModalById('edit-modal')">Отмена</button>
+            </div>
+        </div>
+
+        <div id="create-schedule-modal" class="modal" onclick="closeModal(event, 'create-schedule-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h2>Новый график</h2>
+                <input type="text" placeholder="Название">
+                <select>
+                    <option>Без шаблона (ручной)</option>
+                    <option>2-2-2</option>
+                    <option>1-1-1</option>
+                    <option>5-2</option>
+                </select>
+                <button onclick="closeModalById('create-schedule-modal')">Создать</button>
+                <button class="secondary" onclick="closeModalById('create-schedule-modal')">Отмена</button>
+            </div>
+        </div>
+
+        <div id="create-template-modal" class="modal" onclick="closeModal(event, 'create-template-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h2>Новый шаблон</h2>
+                <input type="text" placeholder="Название">
+                <input type="text" placeholder="Описание">
+                <p style="font-size: 13px; color: #888; margin: 12px 0 8px;">Паттерн смен:</p>
+                <div class="pattern-preview" style="margin-bottom: 12px;">
+                    <div class="pattern-block day">☀️</div>
+                    <div class="pattern-block day">☀️</div>
+                    <div class="pattern-block off">🏠</div>
+                    <div class="pattern-block off">🏠</div>
+                </div>
+                <button onclick="closeModalById('create-template-modal')">Сохранить</button>
+                <button class="secondary" onclick="closeModalById('create-template-modal')">Отмена</button>
+            </div>
+        </div>
+
+        <div id="time-modal" class="modal" onclick="closeModal(event, 'time-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h2>Время напоминания</h2>
+                <p style="font-size: 13px; color: #888; margin-bottom: 12px;">Введите время в формате ЧЧ:ММ</p>
+                <input type="text" value="19:00" placeholder="19:00">
+                <button onclick="closeModalById('time-modal')">Сохранить</button>
+                <button class="secondary" onclick="closeModalById('time-modal')">Отмена</button>
+            </div>
+        </div>
+
+        <div id="schedule-picker-modal" class="modal" onclick="closeModal(event, 'schedule-picker-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h2>Выбрать график</h2>
+                <div class="checkbox-group">
+                    <div class="checkbox-item" onclick="closeModalById('schedule-picker-modal')">
+                        <div class="checkbox checked"></div>
+                        <span>Мой график</span>
+                    </div>
+                    <div class="checkbox-item" onclick="closeModalById('schedule-picker-modal')">
+                        <div class="checkbox"></div>
+                        <span>График жены</span>
+                    </div>
+                </div>
+                <button class="secondary" onclick="closeModalById('schedule-picker-modal')">Закрыть</button>
+            </div>
+        </div>
+
+        <div id="compare-detail-modal" class="modal" onclick="closeModal(event, 'compare-detail-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h2>3 августа</h2>
+                <div class="compare-stats">
+                    <span>Мой график</span>
+                    <span>☀️ День</span>
+                </div>
+                <div class="compare-stats">
+                    <span>График жены</span>
+                    <span>🌙 Ночь</span>
+                </div>
+                <button class="secondary" onclick="closeModalById('compare-detail-modal')" style="margin-top: 16px;">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(screen, element) {
+            // Скрыть все экраны
+            document.querySelectorAll('.screen-content').forEach(s => s.classList.remove('active'));
+            // Показать выбранный
+            document.getElementById(screen + '-screen').classList.add('active');
+            
+            // Обновить активную вкладку
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            element.classList.add('active');
+            
+            // Обновить заголовок
+            const titles = {
+                'calendar': 'Август 2026',
+                'templates': 'Шаблоны',
+                'compare': 'Сравнить',
+                'settings': 'Настройки'
+            };
+            const subtitles = {
+                'calendar': 'Мой график ▾',
+                'templates': '',
+                'compare': 'Август 2026',
+                'settings': ''
+            };
+            
+            document.getElementById('screen-title').textContent = titles[screen];
+            document.getElementById('screen-subtitle').textContent = subtitles[screen];
+            
+            // Показать/скрыть FAB
+            document.querySelector('.fab').style.display = (screen === 'calendar' || screen === 'templates') ? 'flex' : 'none';
+        }
+
+        function showEditModal(day) {
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function showCreateScheduleModal() {
+            document.getElementById('create-schedule-modal').classList.add('active');
+        }
+
+        function showCreateTemplateModal() {
+            document.getElementById('create-template-modal').classList.add('active');
+        }
+
+        function showTimeModal() {
+            document.getElementById('time-modal').classList.add('active');
+        }
+
+        function showSchedulePicker() {
+            document.getElementById('schedule-picker-modal').classList.add('active');
+        }
+
+        function showCompareDetail(day) {
+            document.getElementById('compare-detail-modal').classList.add('active');
+        }
+
+        function closeModal(event, modalId) {
+            if (event.target.id === modalId) {
+                document.getElementById(modalId).classList.remove('active');
+            }
+        }
+
+        function closeModalById(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function toggleCheckbox(element) {
+            element.querySelector('.checkbox').classList.toggle('checked');
+        }
+    </script>
+</body>
+</html>
