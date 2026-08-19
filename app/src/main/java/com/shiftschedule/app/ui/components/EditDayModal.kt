@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.components
+﻿package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -77,8 +77,7 @@ fun EditDayModal(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = schedule.id == selectedScheduleId,
+                    Checkbox(checked = selectedScheduleIds.contains(schedule.id == selectedScheduleId),
                         onClick = { selectedScheduleId = schedule.id }
                     )
                     Text(
@@ -97,8 +96,7 @@ fun EditDayModal(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = type == selectedShiftType,
+                    Checkbox(checked = selectedScheduleIds.contains(type == selectedShiftType),
                         onClick = { selectedShiftType = type }
                     )
                     Text(
@@ -138,7 +136,7 @@ fun EditDayModal(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = !shiftCycle, onClick = { shiftCycle = false })
+                    Checkbox(checked = selectedScheduleIds.contains(!shiftCycle), onClick = { shiftCycle = false })
                     Text(
                         tr("continue_pattern"),
                         modifier = Modifier.padding(start = 8.dp),
@@ -149,7 +147,7 @@ fun EditDayModal(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = shiftCycle, onClick = { shiftCycle = true })
+                    Checkbox(checked = selectedScheduleIds.contains(shiftCycle), onClick = { shiftCycle = true })
                     Text(
                         tr("shift_cycle", days),
                         modifier = Modifier.padding(start = 8.dp),
@@ -162,7 +160,7 @@ fun EditDayModal(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = applyRange == "this_day", onClick = { applyRange = "this_day" })
+                    Checkbox(checked = selectedScheduleIds.contains(applyRange == "this_day"), onClick = { applyRange = "this_day" })
                     Text(
                         tr("this_day"),
                         modifier = Modifier.padding(start = 8.dp),
@@ -173,8 +171,7 @@ fun EditDayModal(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = applyRange == "this_and_following",
+                    Checkbox(checked = selectedScheduleIds.contains(applyRange == "this_and_following"),
                         onClick = { applyRange = "this_and_following" }
                     )
                     Text(
@@ -187,8 +184,7 @@ fun EditDayModal(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = applyRange == "entire_schedule",
+                    Checkbox(checked = selectedScheduleIds.contains(applyRange == "entire_schedule"),
                         onClick = { applyRange = "entire_schedule" }
                     )
                     Text(

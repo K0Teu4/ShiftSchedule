@@ -1,5 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">График работы</string>
     <string name="launcher_name">График</string>
+    <string name="today_label">Today</string>
+    <string name="shared_off">Shared day off</string>
+    <string name="app_info_title">About App</string>
+    <string name="app_info_desc">Shift Schedule is a tool for planning work shifts. Supports multiple schedules, JSON export, and flexible notifications.</string>
+    <string name="app_license">License: MIT</string>
+    <string name="settings_controls_title">Controls</string>
+    <string name="settings_controls_desc">Long press on day: edit. Swipe on schedule: delete. Tap month header: go to today.</string>
 </resources>

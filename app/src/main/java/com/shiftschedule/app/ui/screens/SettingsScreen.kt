@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.ui.components.ScreenHeader
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
@@ -67,16 +68,13 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     val importedMsg = tr("imported")
     val importBadMsg = tr("import_bad")
     val importErrMsg = tr("import_error")
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
+    
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let {
             scope.launch {
                 try {
                     val json = viewModel.exportData()
-                    context.contentResolver.openOutputStream(it)?.use { os ->
-                        os.write(json.toByteArray(Charsets.UTF_8))
-                    }
+                    context.contentResolver.openOutputStream(it)?.use { os -> os.write(json.toByteArray(Charsets.UTF_8)) }
                     snackbarHostState.showSnackbar(exportedMsg)
                 } catch (e: Exception) {
                     snackbarHostState.showSnackbar(exportErrMsg)
@@ -84,15 +82,11 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             }
         }
     }
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             scope.launch {
                 try {
-                    val json = context.contentResolver.openInputStream(it)?.use { input ->
-                        input.readBytes().toString(Charsets.UTF_8)
-                    } ?: return@launch
+                    val json = context.contentResolver.openInputStream(it)?.use { input -> input.readBytes().toString(Charsets.UTF_8) } ?: return@launch
                     val ok = viewModel.importData(json)
                     snackbarHostState.showSnackbar(if (ok) importedMsg else importBadMsg)
                 } catch (e: Exception) {
@@ -101,242 +95,130 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             }
         }
     }
+
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp).verticalScroll(rememberScrollState())
         ) {
-            ScreenHeader(
-                title = tr("tab_settings"),
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
+            ScreenHeader(title = tr("tab_settings"), modifier = Modifier.padding(bottom = 12.dp))
+            
+            // Тема
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = tr("appearance_theme"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ThemeChip("dark", tr("theme_dark"), settings.theme, modifier = Modifier.weight(1f)) {
-                            viewModel.updateSettings(settings.copy(theme = it))
-                        }
-                        ThemeChip("light", tr("theme_light"), settings.theme, modifier = Modifier.weight(1f)) {
-                            viewModel.updateSettings(settings.copy(theme = it))
-                        }
+                    Text(text = tr("appearance_theme"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ThemeChip("dark", tr("theme_dark"), settings.theme, modifier = Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
+                        ThemeChip("light", tr("theme_light"), settings.theme, modifier = Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ThemeChip("sepia", tr("theme_sepia"), settings.theme, modifier = Modifier.weight(1f)) {
-                            viewModel.updateSettings(settings.copy(theme = it))
-                        }
-                        ThemeChip("midnight", tr("theme_midnight"), settings.theme, modifier = Modifier.weight(1f)) {
-                            viewModel.updateSettings(settings.copy(theme = it))
-                        }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ThemeChip("sepia", tr("theme_sepia"), settings.theme, modifier = Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
+                        ThemeChip("midnight", tr("theme_midnight"), settings.theme, modifier = Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
                     }
                 }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
+            
+            // Уведомления
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = tr("notifications"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Text(text = tr("notifications"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(tr("reminders"), style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                tr("reminders_desc"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Text(tr("reminders_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(
-                            checked = settings.notifications,
-                            onCheckedChange = { viewModel.updateSettings(settings.copy(notifications = it)) }
-                        )
+                        Switch(checked = settings.notifications, onCheckedChange = { viewModel.updateSettings(settings.copy(notifications = it)) })
                     }
                     if (settings.notifications) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            tr("time_dialog_title") + ": " + settings.reminderTime,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        OutlinedButton(onClick = { showTimeDialog = true }) {
-                            Text(tr("change_time"))
-                        }
+                        Text(tr("time_dialog_title") + ": " + settings.reminderTime, style = MaterialTheme.typography.bodyMedium)
+                        OutlinedButton(onClick = { showTimeDialog = true }) { Text(tr("change_time")) }
                     }
                 }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
+
+            // Управление (Новое)
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = tr("display"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(tr("emoji"), style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                tr("emoji_desc"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = settings.showEmoji,
-                            onCheckedChange = { viewModel.updateSettings(settings.copy(showEmoji = it)) }
-                        )
-                    }
+                    Text(text = tr("settings_controls_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                    Text(text = tr("settings_controls_desc"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
+
+            // О приложении (Новое)
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = tr("week_start"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = settings.weekStart == "mon",
-                            onClick = { viewModel.updateSettings(settings.copy(weekStart = "mon")) }
-                        )
-                        Text(tr("mon"), modifier = Modifier.padding(start = 8.dp))
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = settings.weekStart == "sun",
-                            onClick = { viewModel.updateSettings(settings.copy(weekStart = "sun")) }
-                        )
-                        Text(tr("sun"), modifier = Modifier.padding(start = 8.dp))
-                    }
+                    Text(text = tr("app_info_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                    Text(text = tr("app_info_desc"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = tr("app_license"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = tr("data"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        tr("data_desc"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        tr("version", versionName),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(onClick = { exportLauncher.launch("shift-schedule-backup.json") }) {
-                            Text(tr("export"))
-                        }
-                        OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) }) {
-                            Text(tr("import"))
-                        }
-                    }
-                }
-            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Футер (Обновленный)
+            Text(
+                text = "Версия $versionName \u00B7 Сделано с ❤️",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                textAlign = TextAlign.Center
+            )
         }
     }
+
+    // Диалог времени (Разделенный на 2 поля)
     if (showTimeDialog) {
-        var timeInput by remember { mutableStateOf(settings.reminderTime) }
+        val parts = settings.reminderTime.split(":")
+        var hours by remember { mutableStateOf(parts.getOrNull(0) ?: "08") }
+        var minutes by remember { mutableStateOf(parts.getOrNull(1) ?: "00") }
+        
         AlertDialog(
             onDismissRequest = { showTimeDialog = false },
             title = { Text(tr("time_dialog_title")) },
             text = {
                 Column {
-                    Text(
-                        tr("time_dialog_hint"),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text(tr("time_dialog_hint"), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = timeInput,
-                        onValueChange = { newValue ->
-                            val filtered = newValue.filter { it.isDigit() || it == ':' }
-                            if (filtered.length <= 5) timeInput = filtered
-                        },
-                        label = { Text(tr("time_label")) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        OutlinedTextField(
+                            value = hours,
+                            onValueChange = { if (it.length <= 2 && it.all { char -> char.isDigit() }) hours = it },
+                            label = { Text("Часы") },
+                            singleLine = true,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        Text(":", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(horizontal = 8.dp))
+                        OutlinedTextField(
+                            value = minutes,
+                            onValueChange = { if (it.length <= 2 && it.all { char -> char.isDigit() }) minutes = it },
+                            label = { Text("Мин") },
+                            singleLine = true,
+                            modifier = Modifier.width(80.dp)
+                        )
+                    }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val parts = timeInput.split(":")
-                        if (parts.size == 2) {
-                            val hour = parts[0].toIntOrNull()
-                            val minute = parts[1].toIntOrNull()
-                            if (hour != null && minute != null && hour in 0..23 && minute in 0..59) {
-                                val formatted = String.format("%02d:%02d", hour, minute)
-                                viewModel.updateSettings(settings.copy(reminderTime = formatted))
-                                showTimeDialog = false
-                            }
+                        val h = hours.toIntOrNull()
+                        val m = minutes.toIntOrNull()
+                        if (h != null && m != null && h in 0..23 && m in 0..59) {
+                            viewModel.updateSettings(settings.copy(reminderTime = String.format("%02d:%02d", h, m)))
+                            showTimeDialog = false
                         }
                     },
-                    enabled = timeInput.matches(Regex("^([01]?[0-9]|2[0-3]):[0-5][0-9]$"))
-                ) {
-                    Text(tr("save"))
-                }
+                    enabled = (hours.toIntOrNull() in 0..23) && (minutes.toIntOrNull() in 0..59)
+                ) { Text(tr("save")) }
             },
-            dismissButton = {
-                TextButton(onClick = { showTimeDialog = false }) { Text(tr("cancel")) }
-            }
+            dismissButton = { TextButton(onClick = { showTimeDialog = false }) { Text(tr("cancel")) } }
         )
     }
 }
@@ -345,21 +227,9 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 private fun ThemeChip(id: String, label: String, current: String, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
     val selected = current == id
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceVariant
-            )
-            .clickable { onSelect(id) }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier = modifier.clip(RoundedCornerShape(12.dp)).background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant).clickable { onSelect(id) }.padding(horizontal = 12.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            label,
-            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
+        Text(label, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
     }
 }

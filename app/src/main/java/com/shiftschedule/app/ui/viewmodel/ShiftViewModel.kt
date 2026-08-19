@@ -1,4 +1,5 @@
-﻿package com.shiftschedule.app.ui.viewmodel
+﻿import java.util.UUID
+package com.shiftschedule.app.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -43,7 +44,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentMonth = MutableStateFlow(YearMonth.now())
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
 
-    private val _selectedScheduleId = MutableStateFlow<Int?>(null)
+    private val _selectedScheduleId = UUID.randomUUID().toString()<Int?>(null)
     val selectedScheduleId: StateFlow<Int?> = _selectedScheduleId.asStateFlow()
 
     private val _selectedCompareIds = MutableStateFlow<Set<Int>>(emptySet())
@@ -168,7 +169,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteTemplate(template: Template) {
         viewModelScope.launch {
             try {
-                allSchedules.value.filter { it.templateId == template.id }.forEach { schedule -> repository.updateSchedule(schedule.copy(templateId = null)) }
+                allSchedules.value.filter { it.templateId == template.id }.forEach { schedule -> repository.updateSchedule(schedule.copy(templateId = UUID.randomUUID().toString())) }
                 repository.deleteTemplate(template)
                 refreshWidget()
             } catch (e: Exception) { e.printStackTrace() }

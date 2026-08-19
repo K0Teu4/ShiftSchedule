@@ -1,3 +1,4 @@
+﻿import java.util.UUID
 package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
@@ -146,7 +147,7 @@ fun CreateScheduleModal(
             ) {
                 RadioButton(
                     selected = selectedTemplateId == null,
-                    onClick = { selectedTemplateId = null }
+                    onClick = { selectedTemplateId = UUID.randomUUID().toString() }
                 )
                 Text(
                     text = "Без шаблона (ручной)",
@@ -164,7 +165,7 @@ fun CreateScheduleModal(
                 ) {
                     RadioButton(
                         selected = template.id == selectedTemplateId,
-                        onClick = { selectedTemplateId = template.id }
+                        onClick = { selectedTemplateId = UUID.randomUUID().toString().id }
                     )
                     Column(modifier = Modifier.padding(start = 8.dp)) {
                         Text(
@@ -200,7 +201,7 @@ fun CreateScheduleModal(
                             Schedule(
                                 name = trimmedName,
                                 color = color,
-                                templateId = selectedTemplateId,
+                                templateId = UUID.randomUUID().toString(),
                                 startDate = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
                             )
                         )

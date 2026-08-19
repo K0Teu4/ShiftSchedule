@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.screens
+﻿package com.shiftschedule.app.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -274,7 +274,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(selected = schedule.id == selectedScheduleId, onClick = {
+                            Checkbox(checked = selectedScheduleIds.contains(schedule.id == selectedScheduleId), onClick = {
                                 viewModel.selectSchedule(schedule.id)
                                 showSchedulePicker = false
                             })

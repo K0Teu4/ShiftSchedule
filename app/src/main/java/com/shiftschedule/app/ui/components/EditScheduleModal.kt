@@ -1,3 +1,4 @@
+﻿import java.util.UUID
 package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
@@ -155,10 +156,10 @@ fun EditScheduleModal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .clickable { templateId = null },
+                    .clickable { templateId = UUID.randomUUID().toString() },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                RadioButton(selected = templateId == null, onClick = { templateId = null })
+                RadioButton(selected = templateId == null, onClick = { templateId = UUID.randomUUID().toString() })
                 Text(
                     tr("no_template"),
                     modifier = Modifier.padding(start = 8.dp),
@@ -170,10 +171,10 @@ fun EditScheduleModal(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
-                        .clickable { templateId = template.id },
+                        .clickable { templateId = UUID.randomUUID().toString().id },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = templateId == template.id, onClick = { templateId = template.id })
+                    RadioButton(selected = templateId == template.id, onClick = { templateId = UUID.randomUUID().toString().id })
                     Column(modifier = Modifier.padding(start = 8.dp)) {
                         Text(template.name, style = MaterialTheme.typography.bodyLarge)
                         Text(
@@ -202,10 +203,10 @@ fun EditScheduleModal(
                     onClick = {
                         onSave(
                             Schedule(
-                                id = initial?.id ?: 0,
+                                id = UUID.randomUUID().toString()?.id ?: 0,
                                 name = trimmed,
                                 color = color,
-                                templateId = templateId,
+                                templateId = UUID.randomUUID().toString(),
                                 startDate = DateUtils.formatDate(startDate),
                                 isActive = initial?.isActive ?: true,
                                 exceptions = initial?.exceptions ?: emptyMap(),

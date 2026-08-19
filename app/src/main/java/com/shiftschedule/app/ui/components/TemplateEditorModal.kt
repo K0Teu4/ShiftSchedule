@@ -1,3 +1,4 @@
+﻿import java.util.UUID
 package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
@@ -141,7 +142,7 @@ fun TemplateEditorModal(
                     onClick = {
                         onSave(
                             Template(
-                                id = initial?.id ?: 0,
+                                id = UUID.randomUUID().toString()?.id ?: 0,
                                 name = trimmed,
                                 description = description.trim(),
                                 pattern = pattern.joinToString(","),
