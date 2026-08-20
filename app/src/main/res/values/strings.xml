@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Shift Schedule</string>
-    <string name="launcher_name">Shift Schedule</string>
+    <string name="app_name">ShiftWeave</string>
+    <string name="launcher_name">ShiftWeave</string>
     <string name="tab_settings">Settings</string>
     <string name="appearance_theme">Theme</string>
     <string name="theme_dark">Dark</string>
@@ -29,3 +29,5 @@
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
 </resources>
+
+

@@ -137,7 +137,7 @@ object Strings {
         "settings_controls_title" to "Управление",
         "settings_controls_desc" to "Календарь: тап — смена, долгое нажатие — кто где, свайп/стрелки — месяц. Шаблоны: зажать — сортировка, свайп влево — удалить. Сравнение: тап — кто где, свайп/стрелки — год. Зарплата: ставка и часы в редактировании графика.",
         "app_info_title" to "О приложении",
-        "app_info_desc" to "Shift Schedule — планировщик рабочих смен. Несколько графиков с индивидуальными ставками, шаблоны, сравнение для поиска общих выходных, праздники РФ, расчёт зарплаты, Material You, виджет и бэкапы в JSON. Все данные на устройстве.",
+        "app_info_desc" to "ShiftWeave — планировщик рабочих смен. Несколько графиков с индивидуальными ставками, шаблоны, сравнение для поиска общих выходных, праздники РФ, расчёт зарплаты, Material You, виджет и бэкапы в JSON. Все данные на устройстве.",
         "app_license" to "Работает без интернета · данные хранятся локально",
         "onb_title" to "Добро пожаловать",
         "onb_sub" to "График работы",
@@ -310,10 +310,10 @@ object Strings {
         "settings_controls_title" to "Controls",
         "settings_controls_desc" to "Calendar: tap — shift, long press — who is where, swipe/arrows — month. Templates: press — reorder, swipe left — delete. Compare: tap — who is where, swipe/arrows — year. Salary: rate/hours in schedule edit.",
         "app_info_title" to "About",
-        "app_info_desc" to "Shift Schedule — shift planner with individual rates. Multiple schedules, templates, comparison for shared days off, RU holidays, salary calculator, Material You, widget, JSON backups. All data stays on device.",
+        "app_info_desc" to "ShiftWeave — shift planner with individual rates. Multiple schedules, templates, comparison for shared days off, RU holidays, salary calculator, Material You, widget, JSON backups. All data stays on device.",
         "app_license" to "Works offline · data stays on device",
         "onb_title" to "Welcome",
-        "onb_sub" to "Shift Schedule",
+        "onb_sub" to "ShiftWeave",
         "onb1" to "Create your first schedule",
         "onb1d" to "Pick a template (2/2, 1/3, 5/2) or manually. Set rate & hours for salary calc.",
         "onb2" to "Add your family",
@@ -373,6 +373,8 @@ fun tr(key: String, vararg args: Any): String {
     val s = Strings.raw(LocalLang.current, key)
     return if (args.isEmpty()) s else s.format(*args)
 }
+
+
 
 
 

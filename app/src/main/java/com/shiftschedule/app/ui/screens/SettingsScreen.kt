@@ -255,7 +255,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Shift Schedule", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                    Text("ShiftWeave", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(tr("app_info_desc"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(10.dp))
@@ -345,6 +345,8 @@ private fun AboutBullet(text: String) {
         Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
     }
 }
+
+
 
 
 

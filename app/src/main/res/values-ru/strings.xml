@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">График смен</string>
-    <string name="launcher_name">График смен</string>
+    <string name="app_name">ShiftWeave</string>
+    <string name="launcher_name">ShiftWeave</string>
     <string name="tab_settings">Настройки</string>
     <string name="appearance_theme">Тема оформления</string>
     <string name="theme_dark">Темная</string>
@@ -29,3 +29,5 @@
     <string name="save">Сохранить</string>
     <string name="cancel">Отмена</string>
 </resources>
+
+
