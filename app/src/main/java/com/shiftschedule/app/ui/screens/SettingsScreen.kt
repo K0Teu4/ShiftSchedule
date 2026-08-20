@@ -3,7 +3,9 @@
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +15,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -40,14 +44,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.ui.components.ScreenHeader
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
 import com.shiftschedule.app.util.tr
 import kotlinx.coroutines.launch
+
+private val themePreviews = mapOf(
+    "dark" to (Color(0xFF1A1A1A) to Color(0xFF5856D6)),
+    "light" to (Color(0xFFFAF9F6) to Color(0xFF4F46E5)),
+    "sepia" to (Color(0xFF33291D) to Color(0xFFD9A05B)),
+    "midnight" to (Color(0xFF000000) to Color(0xFF00E5FF)),
+    "ocean" to (Color(0xFF07404C) to Color(0xFF22B8CF)),
+    "forest" to (Color(0xFF142019) to Color(0xFF7BC46A)),
+    "berry" to (Color(0xFF221220) to Color(0xFFD985C7)),
+    "sand" to (Color(0xFFFFF6E9) to Color(0xFFB26B1F)),
+    "plum" to (Color(0xFF2A1439) to Color(0xFFB388FF)),
+    "graphite" to (Color(0xFF1A1C20) to Color(0xFFC9CCD3))
+)
 
 @Composable
 fun SettingsScreen(viewModel: ShiftViewModel) {
@@ -56,13 +75,6 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val versionName = remember(context) {
-        try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0"
-        } catch (e: Exception) {
-            "1.0"
-        }
-    }
 
     val exportedMsg = tr("exported")
     val exportErrMsg = tr("export_error")
@@ -70,16 +82,12 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     val importBadMsg = tr("import_bad")
     val importErrMsg = tr("import_error")
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
+    val exportLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let {
             scope.launch {
                 try {
                     val json = viewModel.exportData()
-                    context.contentResolver.openOutputStream(it)?.use { os ->
-                        os.write(json.toByteArray(Charsets.UTF_8))
-                    }
+                    context.contentResolver.openOutputStream(it)?.use { os -> os.write(json.toByteArray(Charsets.UTF_8)) }
                     snackbarHostState.showSnackbar(exportedMsg)
                 } catch (e: Exception) {
                     snackbarHostState.showSnackbar(exportErrMsg)
@@ -87,16 +95,11 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             }
         }
     }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
+    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             scope.launch {
                 try {
-                    val json = context.contentResolver.openInputStream(it)?.use { input ->
-                        input.readBytes().toString(Charsets.UTF_8)
-                    } ?: return@launch
+                    val json = context.contentResolver.openInputStream(it)?.use { input -> input.readBytes().toString(Charsets.UTF_8) } ?: return@launch
                     val ok = viewModel.importData(json)
                     snackbarHostState.showSnackbar(if (ok) importedMsg else importBadMsg)
                 } catch (e: Exception) {
@@ -107,32 +110,16 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { paddingValues ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp).verticalScroll(rememberScrollState())
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp).verticalScroll(rememberScrollState())) {
             ScreenHeader(title = tr("tab_settings"), modifier = Modifier.padding(bottom = 12.dp))
 
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(tr("appearance_theme"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ThemeChip("dark", tr("theme_dark"), settings.theme, Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
-                        ThemeChip("light", tr("theme_light"), settings.theme, Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ThemeChip("sepia", tr("theme_sepia"), settings.theme, Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
-                        ThemeChip("midnight", tr("theme_midnight"), settings.theme, Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ThemeChip("ocean", tr("theme_ocean"), settings.theme, Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
-                        ThemeChip("forest", tr("theme_forest"), settings.theme, Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ThemeChip("berry", tr("theme_berry"), settings.theme, Modifier.weight(1f)) { viewModel.updateSettings(settings.copy(theme = it)) }
-                        Box(modifier = Modifier.weight(1f))
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                        themePreviews.forEach { (id, pair) ->
+                            ThemeDot(id, tr("theme_$id"), pair.first, pair.second, settings.theme) { viewModel.updateSettings(settings.copy(theme = it)) }
+                        }
                     }
                 }
             }
@@ -200,7 +187,12 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(tr("settings_controls_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    Text(tr("settings_controls_desc"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ControlRow("👆", tr("ctrl_tap"))
+                    ControlRow("👥", tr("ctrl_long"))
+                    ControlRow("↔️", tr("ctrl_swipe"))
+                    ControlRow("✊", tr("ctrl_drag"))
+                    ControlRow("⧉", tr("ctrl_copy"))
+                    ControlRow("🆚", tr("ctrl_compare"))
                 }
             }
 
@@ -208,16 +200,24 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("app_info_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                    Text("Shift Schedule", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(tr("app_info_desc"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(tr("app_license"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    AboutBullet(tr("about_1"))
+                    AboutBullet(tr("about_2"))
+                    AboutBullet(tr("about_3"))
+                    AboutBullet(tr("about_4"))
+                    AboutBullet(tr("about_5"))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(tr("app_license"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Версия $versionName · Сделано с ❤️",
+                text = "Версия 1.0 · Сделано с ❤️",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -238,21 +238,9 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                     Text(tr("time_dialog_hint"), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        OutlinedTextField(
-                            value = hours,
-                            onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) hours = it },
-                            label = { Text("0-23") },
-                            singleLine = true,
-                            modifier = Modifier.width(80.dp)
-                        )
+                        OutlinedTextField(value = hours, onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) hours = it }, label = { Text("0-23") }, singleLine = true, modifier = Modifier.width(80.dp))
                         Text(":", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(horizontal = 8.dp))
-                        OutlinedTextField(
-                            value = minutes,
-                            onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) minutes = it },
-                            label = { Text("0-59") },
-                            singleLine = true,
-                            modifier = Modifier.width(80.dp)
-                        )
+                        OutlinedTextField(value = minutes, onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) minutes = it }, label = { Text("0-59") }, singleLine = true, modifier = Modifier.width(80.dp))
                     }
                 }
             },
@@ -274,12 +262,31 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 }
 
 @Composable
-private fun ThemeChip(id: String, label: String, current: String, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
+private fun ThemeDot(id: String, label: String, bg: Color, pr: Color, current: String, onSelect: (String) -> Unit) {
     val selected = current == id
-    Box(
-        modifier = modifier.clip(RoundedCornerShape(12.dp)).background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant).clickable { onSelect(id) }.padding(horizontal = 12.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = 14.dp).clickable { onSelect(id) }) {
+        Box(
+            modifier = Modifier.size(46.dp).clip(CircleShape).background(bg).then(if (selected) Modifier.border(3.dp, pr, CircleShape) else Modifier.border(1.dp, Color(0x33888888), CircleShape)),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(pr))
+        }
+        Text(label, style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+@Composable
+private fun ControlRow(icon: String, text: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(icon, fontSize = 18.sp, modifier = Modifier.size(28.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+@Composable
+private fun AboutBullet(text: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+        Text("•", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
     }
 }

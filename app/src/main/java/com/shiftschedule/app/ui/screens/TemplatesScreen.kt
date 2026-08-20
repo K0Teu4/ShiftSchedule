@@ -424,7 +424,7 @@ private fun ScheduleCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    (templateName ?: tr("manual")) + " В· " + tr("from") + " " + schedule.startDate,
+                    (templateName ?: tr("manual")) + " · " + tr("from") + " " + com.shiftschedule.app.util.DateUtils.parseDate(schedule.startDate).format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -521,3 +521,4 @@ private fun TemplateCard(
         }
     }
 }
+

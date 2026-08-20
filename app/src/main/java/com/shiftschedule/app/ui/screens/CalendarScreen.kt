@@ -29,6 +29,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +54,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.ui.components.CalendarSkeleton
 import com.shiftschedule.app.ui.components.DayCell
@@ -66,7 +69,6 @@ import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.monthLocale
 import com.shiftschedule.app.util.tr
 import java.time.LocalDate
-import java.time.YearMonth
 
 @Composable
 fun CalendarScreen(viewModel: ShiftViewModel) {
@@ -101,12 +103,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                 }
             }
         ) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.TopCenter
-            ) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
                 Column(
                     modifier = Modifier
                         .widthIn(max = 900.dp)
@@ -128,85 +125,42 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                             }
                         }
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = {
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.previousMonth()
-                        }) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); viewModel.previousMonth() }) {
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = tr("prev_month"))
                         }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = DateUtils.monthTitle(currentMonth, monthLocale()),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = DateUtils.monthTitle(currentMonth, monthLocale()), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         }
-                        IconButton(onClick = {
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.nextMonth()
-                        }) {
+                        IconButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); viewModel.nextMonth() }) {
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = tr("next_month"))
                         }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         HeaderChip(tr("today")) { viewModel.goToday() }
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                        HeaderChip((selectedSchedule?.name ?: tr("schedule_label")) + " ▾") {
-                            showSchedulePicker = true
-                        }
+                        HeaderChip((selectedSchedule?.name ?: tr("schedule_label")) + " ▾") { showSchedulePicker = true }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     if (!viewModel.isTipSeen("calendar")) {
-                        TipCard(
-                            text = tr("tip_calendar"),
-                            onClose = { viewModel.markTipSeen("calendar") },
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
+                        TipCard(text = tr("tip_calendar"), onClose = { viewModel.markTipSeen("calendar") }, modifier = Modifier.padding(bottom = 8.dp))
                     }
                     selectedSchedule?.let { schedule ->
                         val todayShift = viewModel.getShiftForDate(schedule, LocalDate.now())
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Text(tr("today_label"), style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                text = todayShift?.let { it.emoji + " " + it.displayName(lang) } ?: tr("no_shift"),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = todayShift?.color ?: MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Text(text = todayShift?.let { it.emoji + " " + it.displayName(lang) } ?: tr("no_shift"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = todayShift?.color ?: MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         val stats = viewModel.getMonthStats(listOf(schedule.id), currentMonth)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            StatChip(tr("day_shifts"), stats["total_day"] ?: 0, androidx.compose.ui.graphics.Color(0xFF34C759))
-                            StatChip(tr("night_shifts"), stats["total_night"] ?: 0, androidx.compose.ui.graphics.Color(0xFF5856D6))
-                            StatChip(tr("off_days"), stats["total_off"] ?: 0, androidx.compose.ui.graphics.Color(0xFFFF9500))
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            StatChip(tr("total_holiday"), stats["total_holiday"] ?: 0, androidx.compose.ui.graphics.Color(0xFFFF2D55))
-                            StatChip(tr("total_sick"), stats["total_sick"] ?: 0, androidx.compose.ui.graphics.Color(0xFFFF3B30))
-                            StatChip(tr("total_vacation"), stats["total_vacation"] ?: 0, androidx.compose.ui.graphics.Color(0xFF00C7BE))
+                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                EmojiStat("☀️", stats["total_day"] ?: 0)
+                                EmojiStat("🌙", stats["total_night"] ?: 0)
+                                EmojiStat("🏠", stats["total_off"] ?: 0)
+                                EmojiStat("🎉", stats["total_holiday"] ?: 0)
+                                EmojiStat("🤒", stats["total_sick"] ?: 0)
+                                EmojiStat("🌴", stats["total_vacation"] ?: 0)
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -239,9 +193,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                                         if (date == null) {
                                             Box(modifier = Modifier.weight(1f).aspectRatio(1f))
                                         } else {
-                                            val shift = selectedSchedule?.let {
-                                                viewModel.getShiftForDate(it, date)
-                                            }
+                                            val shift = selectedSchedule?.let { viewModel.getShiftForDate(it, date) }
                                             DayCell(
                                                 day = date.dayOfMonth,
                                                 shiftType = shift,
@@ -270,35 +222,15 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
             text = {
                 Column {
                     schedules.forEach { schedule ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    viewModel.selectSchedule(schedule.id)
-                                    showSchedulePicker = false
-                                }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = schedule.id == selectedScheduleId,
-                                onClick = {
-                                    viewModel.selectSchedule(schedule.id)
-                                    showSchedulePicker = false
-                                }
-                            )
+                        Row(modifier = Modifier.fillMaxWidth().clickable { viewModel.selectSchedule(schedule.id); showSchedulePicker = false }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RadioButton(selected = schedule.id == selectedScheduleId, onClick = { viewModel.selectSchedule(schedule.id); showSchedulePicker = false })
                             Text(schedule.name, modifier = Modifier.padding(start = 8.dp))
                         }
                     }
-                    TextButton(onClick = {
-                        showSchedulePicker = false
-                        showCreateModal = true
-                    }) { Text(tr("add_schedule")) }
+                    TextButton(onClick = { showSchedulePicker = false; showCreateModal = true }) { Text(tr("add_schedule")) }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = { showSchedulePicker = false }) { Text(tr("close")) }
-            }
+            confirmButton = { TextButton(onClick = { showSchedulePicker = false }) { Text(tr("close")) } }
         )
     }
     whoWhereDate?.let { date ->
@@ -308,24 +240,14 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
             text = {
                 Column {
                     viewModel.getShiftsForDate(date).forEach { (schedule, shift) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(schedule.name, style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                text = shift?.let { it.emoji + " " + it.displayName(lang) } ?: "—",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Text(text = shift?.let { it.emoji + " " + it.displayName(lang) } ?: "—", style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
             },
-            confirmButton = {
-                TextButton(onClick = { whoWhereDate = null }) { Text(tr("close")) }
-            }
+            confirmButton = { TextButton(onClick = { whoWhereDate = null }) { Text(tr("close")) } }
         )
     }
     editDay?.let { date ->
@@ -371,37 +293,17 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
 }
 
 @Composable
-private fun HeaderChip(text: String, onClick: () -> Unit) {
-    val haptics = LocalHapticFeedback.current
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable {
-                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onClick()
-            }
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+private fun EmojiStat(icon: String, value: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(icon, fontSize = 16.sp)
+        Text(value.toString(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-private fun StatChip(label: String, value: Int, color: androidx.compose.ui.graphics.Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(color.copy(alpha = 0.3f))
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            Text("$label: $value", style = MaterialTheme.typography.labelMedium)
-        }
+private fun HeaderChip(text: String, onClick: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
+    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface).clickable { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() }.padding(horizontal = 12.dp, vertical = 6.dp)) {
+        Text(text, style = MaterialTheme.typography.bodyMedium)
     }
 }
-
-

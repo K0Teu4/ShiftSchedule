@@ -149,7 +149,21 @@ object Strings {
         "onb3d" to "Вкладка «Сравнение» покажет, когда у всех выходной ✦",
         "onb_btn" to "Создать первый график",
         "onb_note" to "Все данные хранятся на вашем устройстве",
-        "widget_title" to "Смены сегодня"
+        "widget_title" to "Смены сегодня",
+        "theme_sand" to "Песок",
+        "theme_plum" to "Слива",
+        "theme_graphite" to "Графит",
+        "ctrl_tap" to "Нажатие на день — поставить или изменить смену",
+        "ctrl_long" to "Долгое нажатие — кто где в этот день",
+        "ctrl_swipe" to "Свайп или стрелки — смена месяца",
+        "ctrl_drag" to "В шаблонах: зажать и тянуть — сортировка, свайп влево — удаление",
+        "ctrl_copy" to "Кнопка с двумя квадратами — копия графика или шаблона",
+        "ctrl_compare" to "В сравнении: тап по дню — кто где",
+        "about_1" to "Несколько графиков и собственные шаблоны смен",
+        "about_2" to "Сравнение графиков и поиск общих выходных",
+        "about_3" to "Статистика по месяцам и за год",
+        "about_4" to "Виджет на рабочем столе и резервные копии в JSON",
+        "about_5" to "Все данные хранятся только на вашем устройстве"
     )
 
     private val en = mapOf(
@@ -294,7 +308,21 @@ object Strings {
         "onb3d" to "The Compare tab shows when everyone is off ✦",
         "onb_btn" to "Create first schedule",
         "onb_note" to "All data stays on your device",
-        "widget_title" to "Shifts today"
+        "widget_title" to "Shifts today",
+        "theme_sand" to "Sand",
+        "theme_plum" to "Plum",
+        "theme_graphite" to "Graphite",
+        "ctrl_tap" to "Tap a day — set or change a shift",
+        "ctrl_long" to "Long press — who is where that day",
+        "ctrl_swipe" to "Swipe or arrows — change month",
+        "ctrl_drag" to "Templates: press and drag — reorder, swipe left — delete",
+        "ctrl_copy" to "Two-squares button — duplicate schedule or template",
+        "ctrl_compare" to "Compare: tap a day — who is where",
+        "about_1" to "Multiple schedules and custom shift templates",
+        "about_2" to "Schedule comparison and shared days off",
+        "about_3" to "Monthly and yearly statistics",
+        "about_4" to "Home screen widget and JSON backups",
+        "about_5" to "All data stays on your device"
     )
 
     fun getSystemLanguage(): String {
@@ -317,3 +345,4 @@ fun tr(key: String, vararg args: Any): String {
     val s = Strings.raw(LocalLang.current, key)
     return if (args.isEmpty()) s else s.format(*args)
 }
+

@@ -1,4 +1,4 @@
-package com.shiftschedule.app
+﻿package com.shiftschedule.app
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: ShiftViewModel = viewModel()
             val settings by viewModel.settings.collectAsState()
-            val lightBased = settings.theme == "light" || settings.theme == "sepia"
+            val lightBased = settings.theme == "light" || settings.theme == "sepia" || settings.theme == "sand"
             val systemLang = Strings.getSystemLanguage()
 
             SideEffect {

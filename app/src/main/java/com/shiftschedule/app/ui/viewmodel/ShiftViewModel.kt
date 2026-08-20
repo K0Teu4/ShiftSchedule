@@ -92,6 +92,8 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     fun nextMonth() { _currentMonth.value = _currentMonth.value.plusMonths(1) }
     fun previousMonth() { _currentMonth.value = _currentMonth.value.minusMonths(1) }
     fun goToday() { _currentMonth.value = YearMonth.now() }
+    fun nextYear() { _currentMonth.value = _currentMonth.value.plusYears(1) }
+    fun previousYear() { _currentMonth.value = _currentMonth.value.minusYears(1) }
 
     fun addSchedule(schedule: Schedule) {
         viewModelScope.launch {
@@ -256,5 +258,6 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
         return StatsUtils.yearStats(allSchedules.value, allTemplates.value.associateBy { it.id }, scheduleIds, year)
     }
 }
+
 
 
