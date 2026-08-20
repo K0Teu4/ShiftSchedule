@@ -139,7 +139,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         HeaderChip(tr("today")) { viewModel.goToday() }
                         Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                        HeaderChip((selectedSchedule?.name ?: tr("schedule_label")) + " ▾") { showSchedulePicker = true }
+                        HeaderChip((selectedSchedule?.name ?: tr("schedule_label")) + " \u25BE") { showSchedulePicker = true }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     if (!viewModel.isTipSeen("calendar")) {
@@ -154,12 +154,16 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                         val stats = viewModel.getMonthStats(listOf(schedule.id), currentMonth)
                         Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                EmojiStat("☀️", stats["total_day"] ?: 0)
-                                EmojiStat("🌙", stats["total_night"] ?: 0)
-                                EmojiStat("🏠", stats["total_off"] ?: 0)
-                                EmojiStat("🎉", stats["total_holiday"] ?: 0)
-                                EmojiStat("🤒", stats["total_sick"] ?: 0)
-                                EmojiStat("🌴", stats["total_vacation"] ?: 0)
+                                EmojiStat("\u2600\uFE0F", stats["total_day"] ?: 0)
+                                EmojiStat("\uD83C\uDF19", stats["total_night"] ?: 0)
+                                EmojiStat("\uD83C\uDFE0", stats["total_off"] ?: 0)
+                                EmojiStat("\uD83C\uDF89", stats["total_holiday"] ?: 0)
+                                EmojiStat("\uD83E\uDD12", stats["total_sick"] ?: 0)
+                                EmojiStat("\uD83C\uDF34", stats["total_vacation"] ?: 0)
+                            }
+                            if (settings.hourRate > 0) {
+                                val money = ((stats["total_day"] ?: 0) * settings.dayHours + (stats["total_night"] ?: 0) * settings.nightHours) * settings.hourRate
+                                Text(tr("salary_line", money), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             }
                         }
                     }
@@ -200,6 +204,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                                                 isToday = date == today,
                                                 isCurrentMonth = date.month == month.month,
                                                 showEmoji = settings.showEmoji,
+                                                isHoliday = settings.rfHolidays && com.shiftschedule.app.util.RuHolidays.isHoliday(date),
                                                 modifier = Modifier.weight(1f),
                                                 onClick = { editDay = date },
                                                 onLongClick = { whoWhereDate = date }
@@ -236,13 +241,13 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
     whoWhereDate?.let { date ->
         AlertDialog(
             onDismissRequest = { whoWhereDate = null },
-            title = { Text(tr("who_where") + " · ${date.dayOfMonth}.${date.monthValue}") },
+            title = { Text(tr("who_where") + " \u00B7 ${date.dayOfMonth}.${date.monthValue}") },
             text = {
                 Column {
                     viewModel.getShiftsForDate(date).forEach { (schedule, shift) ->
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(schedule.name, style = MaterialTheme.typography.bodyLarge)
-                            Text(text = shift?.let { it.emoji + " " + it.displayName(lang) } ?: "—", style = MaterialTheme.typography.bodyLarge)
+                            Text(text = shift?.let { it.emoji + " " + it.displayName(lang) } ?: "\u2014", style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -307,3 +312,5 @@ private fun HeaderChip(text: String, onClick: () -> Unit) {
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
+

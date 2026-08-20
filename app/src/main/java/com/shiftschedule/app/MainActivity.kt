@@ -26,6 +26,7 @@ import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.Strings
 import androidx.compose.runtime.CompositionLocalProvider
 import com.shiftschedule.app.widget.ShiftWidgetProvider
+import com.shiftschedule.app.ui.components.ChangelogDialog
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,8 +39,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: ShiftViewModel = viewModel()
             val settings by viewModel.settings.collectAsState()
-            val lightBased = settings.theme == "light" || settings.theme == "sepia" || settings.theme == "sand"
-            val systemLang = Strings.getSystemLanguage()
+            val lightBased = when (settings.theme) {
+                "light", "sand" -> true
+                "dynamic" -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_NO
+                else -> false
+            }
+            val lang = when (settings.lang) {
+                "ru" -> "ru"
+                "en" -> "en"
+                else -> Strings.getSystemLanguage()
+            }
 
             SideEffect {
                 val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -47,13 +56,11 @@ class MainActivity : ComponentActivity() {
                 controller.isAppearanceLightNavigationBars = lightBased
             }
 
-            CompositionLocalProvider(LocalLang provides systemLang) {
+            CompositionLocalProvider(LocalLang provides lang) {
                 ShiftScheduleTheme(theme = settings.theme) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
+                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         AppNavigation(viewModel)
+                        ChangelogDialog(viewModel)
                     }
                 }
             }

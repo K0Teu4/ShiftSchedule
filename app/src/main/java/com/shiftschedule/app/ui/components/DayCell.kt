@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.components
+﻿package com.shiftschedule.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.ShiftType
@@ -40,6 +41,7 @@ fun DayCell(
     isToday: Boolean,
     isCurrentMonth: Boolean,
     showEmoji: Boolean,
+    isHoliday: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onLongClick: () -> Unit = {}
@@ -50,11 +52,7 @@ fun DayCell(
         shiftType != null -> shiftType.color.copy(alpha = 0.25f)
         else -> MaterialTheme.colorScheme.surface
     }
-    val bgColor by animateColorAsState(
-        targetValue = targetBg,
-        animationSpec = tween(300),
-        label = "dayBg"
-    )
+    val bgColor by animateColorAsState(targetValue = targetBg, animationSpec = tween(300), label = "dayBg")
     val borderColor = if (isToday) MaterialTheme.colorScheme.primary else Color.Transparent
     Box(
         modifier = modifier
@@ -70,14 +68,8 @@ fun DayCell(
                 }
             }
             .combinedClickable(
-                onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onClick()
-                },
-                onLongClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
+                onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() },
+                onLongClick = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onLongClick() }
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -86,15 +78,14 @@ fun DayCell(
                 text = day.toString(),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                color = if (isCurrentMonth) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                }
+                color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
             )
-            if (shiftType != null) {
+            if (shiftType != null || isHoliday) {
                 Text(
-                    text = if (showEmoji) shiftType.emoji else shiftType.displayName.take(1),
+                    text = buildString {
+                        if (shiftType != null) append(if (showEmoji) shiftType.emoji else shiftType.displayName.take(1))
+                        if (isHoliday) append(" 🎉")
+                    }.trim(),
                     fontSize = 12.sp
                 )
             }
@@ -104,18 +95,9 @@ fun DayCell(
 
 @Composable
 fun WeekHeader(weekStart: String, lang: String = "ru", modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         DateUtils.weekDayHeaders(weekStart, lang).forEach { day ->
-            Text(
-                text = day,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+            Text(text = day, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         }
     }
 }

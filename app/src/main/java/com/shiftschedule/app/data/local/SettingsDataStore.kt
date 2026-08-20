@@ -1,8 +1,9 @@
-package com.shiftschedule.app.data.local
+﻿package com.shiftschedule.app.data.local
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.shiftschedule.app.data.model.AppSettings
@@ -21,6 +22,12 @@ class SettingsDataStore(private val context: Context) {
         val LAST_NOTIFICATION = stringPreferencesKey("last_notification_date")
         val SEEN_TIPS = stringPreferencesKey("seen_tips")
         val THEME = stringPreferencesKey("theme")
+        val LANG = stringPreferencesKey("lang")
+        val RF_HOLIDAYS = booleanPreferencesKey("rf_holidays")
+        val HOUR_RATE = intPreferencesKey("hour_rate")
+        val DAY_HOURS = intPreferencesKey("day_hours")
+        val NIGHT_HOURS = intPreferencesKey("night_hours")
+        val LAST_SEEN_VERSION = stringPreferencesKey("last_seen_version")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -32,7 +39,13 @@ class SettingsDataStore(private val context: Context) {
             hasCompletedOnboarding = preferences[Keys.HAS_COMPLETED_ONBOARDING] ?: false,
             lastNotificationDate = preferences[Keys.LAST_NOTIFICATION] ?: "",
             seenTips = preferences[Keys.SEEN_TIPS] ?: "",
-            theme = preferences[Keys.THEME] ?: "dark"
+            theme = preferences[Keys.THEME] ?: "dark",
+            lang = preferences[Keys.LANG] ?: "system",
+            rfHolidays = preferences[Keys.RF_HOLIDAYS] ?: true,
+            hourRate = preferences[Keys.HOUR_RATE] ?: 0,
+            dayHours = preferences[Keys.DAY_HOURS] ?: 8,
+            nightHours = preferences[Keys.NIGHT_HOURS] ?: 16,
+            lastSeenVersion = preferences[Keys.LAST_SEEN_VERSION] ?: ""
         )
     }
 
@@ -46,6 +59,12 @@ class SettingsDataStore(private val context: Context) {
             preferences[Keys.LAST_NOTIFICATION] = settings.lastNotificationDate
             preferences[Keys.SEEN_TIPS] = settings.seenTips
             preferences[Keys.THEME] = settings.theme
+            preferences[Keys.LANG] = settings.lang
+            preferences[Keys.RF_HOLIDAYS] = settings.rfHolidays
+            preferences[Keys.HOUR_RATE] = settings.hourRate
+            preferences[Keys.DAY_HOURS] = settings.dayHours
+            preferences[Keys.NIGHT_HOURS] = settings.nightHours
+            preferences[Keys.LAST_SEEN_VERSION] = settings.lastSeenVersion
         }
     }
 }

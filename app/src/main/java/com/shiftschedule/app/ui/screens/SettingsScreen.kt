@@ -65,7 +65,8 @@ private val themePreviews = mapOf(
     "berry" to (Color(0xFF221220) to Color(0xFFD985C7)),
     "sand" to (Color(0xFFFFF6E9) to Color(0xFFB26B1F)),
     "plum" to (Color(0xFF2A1439) to Color(0xFFB388FF)),
-    "graphite" to (Color(0xFF1A1C20) to Color(0xFFC9CCD3))
+    "graphite" to (Color(0xFF1A1C20) to Color(0xFFC9CCD3)),
+    "dynamic" to (Color(0xFFEADDFF) to Color(0xFF6750A4))
 )
 
 @Composable
@@ -173,6 +174,60 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    Text(tr("lang_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(lang = "system")) }) {
+                        RadioButton(selected = settings.lang == "system", onClick = { viewModel.updateSettings(settings.copy(lang = "system")) })
+                        Text(tr("lang_system"), modifier = Modifier.padding(start = 8.dp))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(lang = "ru")) }) {
+                        RadioButton(selected = settings.lang == "ru", onClick = { viewModel.updateSettings(settings.copy(lang = "ru")) })
+                        Text(tr("lang_ru"), modifier = Modifier.padding(start = 8.dp))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(lang = "en")) }) {
+                        RadioButton(selected = settings.lang == "en", onClick = { viewModel.updateSettings(settings.copy(lang = "en")) })
+                        Text(tr("lang_en"), modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(tr("holidays_salary"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(tr("rf_holidays_title"), style = MaterialTheme.typography.bodyLarge)
+                            Text(tr("rf_holidays_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = settings.rfHolidays, onCheckedChange = { viewModel.updateSettings(settings.copy(rfHolidays = it)) })
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(tr("salary_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = if (settings.hourRate == 0) "" else settings.hourRate.toString(),
+                            onValueChange = { v -> viewModel.updateSettings(settings.copy(hourRate = v.filter { it.isDigit() }.take(6).toIntOrNull() ?: 0)) },
+                            label = { Text(tr("rate_label")) }, singleLine = true, modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = settings.dayHours.toString(),
+                            onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) viewModel.updateSettings(settings.copy(dayHours = n)) },
+                            label = { Text(tr("day_hours")) }, singleLine = true, modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = settings.nightHours.toString(),
+                            onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) viewModel.updateSettings(settings.copy(nightHours = n)) },
+                            label = { Text(tr("night_hours")) }, singleLine = true, modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(tr("data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
                     Text(tr("data_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -187,12 +242,12 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(tr("settings_controls_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    ControlRow("👆", tr("ctrl_tap"))
-                    ControlRow("👥", tr("ctrl_long"))
-                    ControlRow("↔️", tr("ctrl_swipe"))
-                    ControlRow("✊", tr("ctrl_drag"))
-                    ControlRow("⧉", tr("ctrl_copy"))
-                    ControlRow("🆚", tr("ctrl_compare"))
+                    ControlRow("\uD83D\uDC46", tr("ctrl_tap"))
+                    ControlRow("\uD83D\uDC65", tr("ctrl_long"))
+                    ControlRow("\u2194\uFE0F", tr("ctrl_swipe"))
+                    ControlRow("\u270A", tr("ctrl_drag"))
+                    ControlRow("\u29C9", tr("ctrl_copy"))
+                    ControlRow("\uD83C\uDD9A", tr("ctrl_compare"))
                 }
             }
 
@@ -217,7 +272,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Версия 1.0 · Сделано с ❤️",
+                text = "Версия 1.0 \u00B7 Сделано с ❤️",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -290,3 +345,5 @@ private fun AboutBullet(text: String) {
         Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
     }
 }
+
+

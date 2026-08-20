@@ -42,7 +42,7 @@ object StatsUtils {
             stats["total_holiday"] = stats["total_holiday"]!! + holidayCount
             stats["total_sick"] = stats["total_sick"]!! + sickCount
             stats["total_vacation"] = stats["total_vacation"]!! + vacationCount
-            if (selected.isNotEmpty() && offCount == selected.size) stats["shared_off"] = stats["shared_off"]!! + 1
+            if (selected.size >= 2 && offCount == selected.size) stats["shared_off"] = stats["shared_off"]!! + 1
             if (selected.isNotEmpty() && dayCount + nightCount == selected.size) stats["all_working"] = stats["all_working"]!! + 1
         }
 
@@ -68,4 +68,5 @@ object StatsUtils {
         return totals
     }
 }
+
 
