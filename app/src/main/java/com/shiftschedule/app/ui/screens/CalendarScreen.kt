@@ -161,8 +161,8 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                                 EmojiStat("\uD83E\uDD12", stats["total_sick"] ?: 0)
                                 EmojiStat("\uD83C\uDF34", stats["total_vacation"] ?: 0)
                             }
-                            if (settings.hourRate > 0) {
-                                val money = ((stats["total_day"] ?: 0) * settings.dayHours + (stats["total_night"] ?: 0) * settings.nightHours) * settings.hourRate
+                            if ((selectedSchedule?.hourRate ?: 0) > 0) {
+                                val money = ((stats["total_day"] ?: 0) * (selectedSchedule?.dayHours ?: 8) + (stats["total_night"] ?: 0) * (selectedSchedule?.nightHours ?: 16)) * (selectedSchedule?.hourRate ?: 0)
                                 Text(tr("salary_line", money), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             }
                         }
@@ -312,5 +312,6 @@ private fun HeaderChip(text: String, onClick: () -> Unit) {
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
 
 

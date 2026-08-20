@@ -47,13 +47,21 @@ fun DayCell(
     onLongClick: () -> Unit = {}
 ) {
     val haptics = LocalHapticFeedback.current
+    val holidayTint = Color(0xFFFFB6C1).copy(alpha = 0.35f)
     val targetBg = when {
         !isCurrentMonth -> MaterialTheme.colorScheme.background
+        isHoliday && shiftType == null -> holidayTint
+        isHoliday && shiftType != null -> shiftType.color.copy(alpha = 0.35f).let { Color((it.red + holidayTint.red)/2, (it.green + holidayTint.green)/2, (it.blue + holidayTint.blue)/2) }
         shiftType != null -> shiftType.color.copy(alpha = 0.25f)
         else -> MaterialTheme.colorScheme.surface
     }
     val bgColor by animateColorAsState(targetValue = targetBg, animationSpec = tween(300), label = "dayBg")
-    val borderColor = if (isToday) MaterialTheme.colorScheme.primary else Color.Transparent
+    val holidayColor = Color(0xFFFF2D55)
+    val borderColor = when {
+        isToday -> MaterialTheme.colorScheme.primary
+        isHoliday -> holidayColor
+        else -> Color.Transparent
+    }
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -64,6 +72,7 @@ fun DayCell(
                 contentDescription = buildString {
                     append(day.toString())
                     if (shiftType != null) append(", " + shiftType.displayName)
+                    if (isHoliday) append(", holiday")
                     if (isToday) append(", today")
                 }
             }
@@ -101,3 +110,4 @@ fun WeekHeader(weekStart: String, lang: String = "ru", modifier: Modifier = Modi
         }
     }
 }
+

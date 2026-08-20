@@ -1,4 +1,4 @@
-package com.shiftschedule.app.data.model
+﻿package com.shiftschedule.app.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -18,7 +18,10 @@ data class Schedule(
     val isActive: Boolean = true,
     val exceptions: Map<String, String> = emptyMap(),
     val cycleShifts: Map<String, Int> = emptyMap(),
-    val sortIndex: Int = 0
+    val sortIndex: Int = 0,
+    val hourRate: Int = 0,
+    val dayHours: Int = 8,
+    val nightHours: Int = 16
 )
 
 class ExceptionsConverter {

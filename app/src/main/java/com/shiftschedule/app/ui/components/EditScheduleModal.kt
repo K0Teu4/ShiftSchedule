@@ -47,7 +47,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +61,9 @@ fun EditScheduleModal(
     var templateId by remember { mutableStateOf(initial?.templateId) }
     var startDate by remember { mutableStateOf(initial?.startDate?.let { DateUtils.parseDate(it) } ?: LocalDate.now()) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var hourRate by remember { mutableStateOf(initial?.hourRate ?: 0) }
+    var dayHours by remember { mutableStateOf(initial?.dayHours ?: 8) }
+    var nightHours by remember { mutableStateOf(initial?.nightHours ?: 16) }
 
     val trimmed = name.trim()
     val canSave = trimmed.isNotBlank()
@@ -82,7 +84,9 @@ fun EditScheduleModal(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
+
             Spacer(modifier = Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -91,15 +95,9 @@ fun EditScheduleModal(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-            if (name.isNotEmpty() && trimmed.isEmpty()) {
-                Text(
-                    tr("name_error"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
+
             Spacer(modifier = Modifier.height(16.dp))
+
             Text(tr("color"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(
                 modifier = Modifier
@@ -143,7 +141,9 @@ fun EditScheduleModal(
                     )
                 }
             }
+
             Spacer(modifier = Modifier.height(8.dp))
+
             Text(tr("template"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(
                 modifier = Modifier
@@ -178,7 +178,37 @@ fun EditScheduleModal(
                     }
                 }
             }
+
             Spacer(modifier = Modifier.height(12.dp))
+
+            Text(tr("holidays_salary"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(tr("salary_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = if (hourRate == 0) "" else hourRate.toString(),
+                    onValueChange = { v -> hourRate = v.filter { it.isDigit() }.take(6).toIntOrNull() ?: 0 },
+                    label = { Text(tr("rate_label")) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = dayHours.toString(),
+                    onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) dayHours = n },
+                    label = { Text(tr("day_hours")) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = nightHours.toString(),
+                    onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) nightHours = n },
+                    label = { Text(tr("night_hours")) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(tr("start_date"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             OutlinedButton(
                 onClick = { showDatePicker = true },
@@ -186,7 +216,9 @@ fun EditScheduleModal(
             ) {
                 Text(startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
             }
+
             Spacer(modifier = Modifier.height(24.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = {
@@ -199,7 +231,10 @@ fun EditScheduleModal(
                                 startDate = DateUtils.formatDate(startDate),
                                 isActive = initial?.isActive ?: true,
                                 exceptions = initial?.exceptions ?: emptyMap(),
-                                cycleShifts = initial?.cycleShifts ?: emptyMap()
+                                cycleShifts = initial?.cycleShifts ?: emptyMap(),
+                                hourRate = hourRate,
+                                dayHours = dayHours,
+                                nightHours = nightHours
                             )
                         )
                     },
@@ -209,6 +244,7 @@ fun EditScheduleModal(
                 }
                 OutlinedButton(onClick = onDismiss) { Text(tr("cancel")) }
             }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -217,6 +253,7 @@ fun EditScheduleModal(
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         )
+
         DatePickerDialog(
             colors = DatePickerDefaults.colors(
                 containerColor = MaterialTheme.colorScheme.surface,

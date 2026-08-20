@@ -161,7 +161,8 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                                 } else {
                                     val shiftsForDay = selectedSchedules.map { it.name to viewModel.getShiftForDate(it, date) }
                                     val isSharedDayOff = selectedSchedules.size >= 2 && shiftsForDay.isNotEmpty() && shiftsForDay.all { it.second?.code == "O" }
-                                    SectorDayCell(day = date.dayOfMonth, shifts = shiftsForDay, isToday = date == today, isCurrentMonth = date.month == currentMonth.month, isSharedDayOff = isSharedDayOff, modifier = Modifier.weight(1f), onClick = { dayDetailsDate = date })
+                                    SectorDayCell(day = date.dayOfMonth, shifts = shiftsForDay, isToday = date == today, isCurrentMonth = date.month == currentMonth.month, isSharedDayOff = isSharedDayOff,
+                                        isHoliday = settings.rfHolidays && com.shiftschedule.app.util.RuHolidays.isHoliday(date), modifier = Modifier.weight(1f), onClick = { dayDetailsDate = date })
                                 }
                             }
                         }
@@ -187,7 +188,7 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             StatRow(tr("total_sick"), stats["total_sick"] ?: 0)
                             StatRow(tr("total_vacation"), stats["total_vacation"] ?: 0)
                             StatRow(tr("all_working"), stats["all_working"] ?: 0)
-                            if (settings.rfHolidays) StatRow(tr("rf_holidays"), com.shiftschedule.app.util.RuHolidays.countInMonth(currentMonth))
+                            if (settings.rfHolidays) StatRow(tr("rf_holidays") + " 🎉", com.shiftschedule.app.util.RuHolidays.countInMonth(currentMonth))
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         selectedSchedules.forEach { schedule ->
@@ -297,5 +298,6 @@ fun StatRow(label: String, value: Int) {
         Text(value.toString(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
 }
+
 
 

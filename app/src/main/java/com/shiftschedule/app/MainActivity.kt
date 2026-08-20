@@ -26,7 +26,7 @@ import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.Strings
 import androidx.compose.runtime.CompositionLocalProvider
 import com.shiftschedule.app.widget.ShiftWidgetProvider
-import com.shiftschedule.app.ui.components.ChangelogDialog
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +60,6 @@ class MainActivity : ComponentActivity() {
                 ShiftScheduleTheme(theme = settings.theme) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         AppNavigation(viewModel)
-                        ChangelogDialog(viewModel)
                     }
                 }
             }
@@ -87,3 +86,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
