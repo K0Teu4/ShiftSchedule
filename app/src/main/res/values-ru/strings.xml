@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">График смен</string>
+    <string name="launcher_name">График смен</string>
+    <string name="tab_settings">Настройки</string>
+    <string name="appearance_theme">Тема оформления</string>
+    <string name="theme_dark">Темная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_sepia">Сепия</string>
+    <string name="theme_midnight">Полуночная</string>
+    <string name="notifications">Уведомления</string>
+    <string name="reminders">Напоминания</string>
+    <string name="reminders_desc">Получать уведомление перед сменой</string>
+    <string name="time_dialog_title">Время напоминания</string>
+    <string name="time_dialog_hint">Введите время в формате ЧЧ:ММ</string>
+    <string name="change_time">Изменить время</string>
+    <string name="exported">Данные успешно экспортированы</string>
+    <string name="export_error">Ошибка экспорта</string>
+    <string name="imported">Данные успешно импортированы</string>
+    <string name="import_bad">Неверный формат данных</string>
+    <string name="import_error">Ошибка импорта</string>
+    <string name="today_label">Сегодня</string>
+    <string name="shared_off">Общий выходной</string>
+    <string name="app_info_title">О приложении</string>
+    <string name="app_info_desc">Shift Schedule — инструмент для планирования смен. Поддерживает множественные графики, экспорт в JSON и настройку уведомлений.</string>
+    <string name="app_license">Лицензия: MIT</string>
+    <string name="settings_controls_title">Управление</string>
+    <string name="settings_controls_desc">Долгое нажатие на день: редактирование. Свайп по графику: удаление. Нажатие на заголовок месяца: переход к сегодня.</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+</resources>

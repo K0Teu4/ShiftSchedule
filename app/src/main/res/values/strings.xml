@@ -1,7 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">График работы</string>
-    <string name="launcher_name">График</string>
+    <string name="app_name">Shift Schedule</string>
+    <string name="launcher_name">Shift Schedule</string>
+    <string name="tab_settings">Settings</string>
+    <string name="appearance_theme">Theme</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_sepia">Sepia</string>
+    <string name="theme_midnight">Midnight</string>
+    <string name="notifications">Notifications</string>
+    <string name="reminders">Reminders</string>
+    <string name="reminders_desc">Get notified before your shift</string>
+    <string name="time_dialog_title">Set reminder time</string>
+    <string name="time_dialog_hint">Enter time in HH:MM format</string>
+    <string name="change_time">Change time</string>
+    <string name="exported">Data exported successfully</string>
+    <string name="export_error">Export failed</string>
+    <string name="imported">Data imported successfully</string>
+    <string name="import_bad">Invalid data format</string>
+    <string name="import_error">Import failed</string>
     <string name="today_label">Today</string>
     <string name="shared_off">Shared day off</string>
     <string name="app_info_title">About App</string>
@@ -9,4 +26,6 @@
     <string name="app_license">License: MIT</string>
     <string name="settings_controls_title">Controls</string>
     <string name="settings_controls_desc">Long press on day: edit. Swipe on schedule: delete. Tap month header: go to today.</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
 </resources>

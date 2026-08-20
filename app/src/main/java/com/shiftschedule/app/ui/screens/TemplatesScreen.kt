@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.screens
+﻿package com.shiftschedule.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -114,7 +114,7 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
         templates
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { paddingValues ->
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, floatingActionButton = { androidx.compose.material3.FloatingActionButton(onClick = { showCreateTemplate = true }) { Icon(Icons.Filled.Add, contentDescription = tr("new_template")) } }) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -424,7 +424,7 @@ private fun ScheduleCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    (templateName ?: tr("manual")) + " · " + tr("from") + " " + schedule.startDate,
+                    (templateName ?: tr("manual")) + " В· " + tr("from") + " " + schedule.startDate,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

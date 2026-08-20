@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.screens
+﻿package com.shiftschedule.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -224,7 +224,7 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("✦", color = SharedDayOff, fontSize = 22.sp)
+                            Text("вњ¦", color = SharedDayOff, fontSize = 22.sp)
                             Spacer(modifier = Modifier.size(10.dp))
                             Column {
                                 Text(
@@ -267,7 +267,7 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                                     val shiftsForDay = selectedSchedules.map { schedule ->
                                         schedule.name to viewModel.getShiftForDate(schedule, date)
                                     }
-                                    val isSharedDayOff = shiftsForDay.isNotEmpty() &&
+                                    val isSharedDayOff = selectedSchedules.size >= 2 && shiftsForDay.isNotEmpty() &&
                                         shiftsForDay.all { it.second?.code == "O" }
 
                                     SectorDayCell(
@@ -304,11 +304,15 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             StatRow(tr("total_day"), stats["total_day"] ?: 0)
                             StatRow(tr("total_night"), stats["total_night"] ?: 0)
                             StatRow(tr("total_holiday"), stats["total_holiday"] ?: 0)
+                            StatRow(tr("total_sick"), stats["total_sick"] ?: 0)
+                            StatRow(tr("total_vacation"), stats["total_vacation"] ?: 0)
                         } else {
-                            StatRow(tr("shared_off") + " ✦", stats["shared_off"] ?: 0)
+                            StatRow(tr("shared_off") + " вњ¦", stats["shared_off"] ?: 0)
                             StatRow(tr("total_day"), stats["total_day"] ?: 0)
                             StatRow(tr("total_night"), stats["total_night"] ?: 0)
                             StatRow(tr("total_holiday"), stats["total_holiday"] ?: 0)
+                            StatRow(tr("total_sick"), stats["total_sick"] ?: 0)
+                            StatRow(tr("total_vacation"), stats["total_vacation"] ?: 0)
                             StatRow(tr("all_working"), stats["all_working"] ?: 0)
                         }
 
@@ -321,7 +325,7 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             ) {
                                 Text(schedule.name, style = MaterialTheme.typography.bodySmall)
                                 Text(
-                                    "☀️ ${s["total_day"] ?: 0} · 🌙 ${s["total_night"] ?: 0} · 🏠 ${s["total_off"] ?: 0}",
+                                    "вЂпёЏ ${s["total_day"] ?: 0} В· рџЊ™ ${s["total_night"] ?: 0} В· рџЏ  ${s["total_off"] ?: 0}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -348,7 +352,7 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                         ) {
                             Text(schedule.name, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                text = shift?.let { it.emoji + " " + it.displayName } ?: "—",
+                                text = shift?.let { it.emoji + " " + it.displayName } ?: "вЂ”",
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
@@ -410,11 +414,11 @@ private fun YearReport(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                YearTotal("☀️", totals["total_day"] ?: 0)
-                YearTotal("🌙", totals["total_night"] ?: 0)
-                YearTotal("🏠", totals["total_off"] ?: 0)
-                YearTotal("🎉", totals["total_holiday"] ?: 0)
-                if (sharedLabel) YearTotal("✦", totals["shared_off"] ?: 0)
+                YearTotal("вЂпёЏ", totals["total_day"] ?: 0)
+                YearTotal("рџЊ™", totals["total_night"] ?: 0)
+                YearTotal("рџЏ ", totals["total_off"] ?: 0)
+                YearTotal("рџЋ‰", totals["total_holiday"] ?: 0)
+                if (sharedLabel) YearTotal("вњ¦", totals["shared_off"] ?: 0)
             }
         }
     }
@@ -454,7 +458,7 @@ private fun YearReport(
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        "☀️ ${s["total_day"] ?: 0} · 🌙 ${s["total_night"] ?: 0} · 🏠 ${s["total_off"] ?: 0} · 🎉 ${s["total_holiday"] ?: 0}",
+                        "вЂпёЏ ${s["total_day"] ?: 0} В· рџЊ™ ${s["total_night"] ?: 0} В· рџЏ  ${s["total_off"] ?: 0} В· рџЋ‰ ${s["total_holiday"] ?: 0}",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -487,8 +491,8 @@ private fun YearReport(
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    "☀️ ${s["total_day"] ?: 0} · 🌙 ${s["total_night"] ?: 0} · 🏠 ${s["total_off"] ?: 0}" +
-                        if (sharedLabel) " · ✦ ${s["shared_off"] ?: 0}" else "",
+                    "вЂпёЏ ${s["total_day"] ?: 0} В· рџЊ™ ${s["total_night"] ?: 0} В· рџЏ  ${s["total_off"] ?: 0}" +
+                        if (sharedLabel) " В· вњ¦ ${s["shared_off"] ?: 0}" else "",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -518,3 +522,4 @@ fun StatRow(label: String, value: Int) {
         Text(value.toString(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
 }
+

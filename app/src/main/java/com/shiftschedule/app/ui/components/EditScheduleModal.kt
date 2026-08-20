@@ -1,5 +1,4 @@
-﻿import java.util.UUID
-package com.shiftschedule.app.ui.components
+﻿package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +27,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +47,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,9 +82,7 @@ fun EditScheduleModal(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -93,7 +91,6 @@ fun EditScheduleModal(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-
             if (name.isNotEmpty() && trimmed.isEmpty()) {
                 Text(
                     tr("name_error"),
@@ -102,9 +99,7 @@ fun EditScheduleModal(
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Text(tr("color"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(
                 modifier = Modifier
@@ -148,18 +143,16 @@ fun EditScheduleModal(
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(tr("template"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .clickable { templateId = UUID.randomUUID().toString() },
+                    .clickable { templateId = null },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                RadioButton(selected = templateId == null, onClick = { templateId = UUID.randomUUID().toString() })
+                RadioButton(selected = templateId == null, onClick = { templateId = null })
                 Text(
                     tr("no_template"),
                     modifier = Modifier.padding(start = 8.dp),
@@ -171,10 +164,10 @@ fun EditScheduleModal(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
-                        .clickable { templateId = UUID.randomUUID().toString().id },
+                        .clickable { templateId = template.id },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = templateId == template.id, onClick = { templateId = UUID.randomUUID().toString().id })
+                    RadioButton(selected = templateId == template.id, onClick = { templateId = template.id })
                     Column(modifier = Modifier.padding(start = 8.dp)) {
                         Text(template.name, style = MaterialTheme.typography.bodyLarge)
                         Text(
@@ -185,9 +178,7 @@ fun EditScheduleModal(
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
             Text(tr("start_date"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             OutlinedButton(
                 onClick = { showDatePicker = true },
@@ -195,18 +186,16 @@ fun EditScheduleModal(
             ) {
                 Text(startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
             }
-
             Spacer(modifier = Modifier.height(24.dp))
-
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = {
                         onSave(
                             Schedule(
-                                id = UUID.randomUUID().toString()?.id ?: 0,
+                                id = initial?.id ?: 0,
                                 name = trimmed,
                                 color = color,
-                                templateId = UUID.randomUUID().toString(),
+                                templateId = templateId,
                                 startDate = DateUtils.formatDate(startDate),
                                 isActive = initial?.isActive ?: true,
                                 exceptions = initial?.exceptions ?: emptyMap(),
@@ -220,7 +209,6 @@ fun EditScheduleModal(
                 }
                 OutlinedButton(onClick = onDismiss) { Text(tr("cancel")) }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -229,7 +217,6 @@ fun EditScheduleModal(
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         )
-
         DatePickerDialog(
             colors = DatePickerDefaults.colors(
                 containerColor = MaterialTheme.colorScheme.surface,

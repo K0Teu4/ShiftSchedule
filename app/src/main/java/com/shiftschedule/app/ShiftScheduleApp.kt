@@ -1,4 +1,4 @@
-package com.shiftschedule.app
+﻿package com.shiftschedule.app
 
 import android.app.Application
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit
 class ShiftScheduleApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        com.shiftschedule.app.notifications.NotificationHelper.createNotificationChannel(this)
         setupNotificationWorker()
     }
 
@@ -18,7 +19,7 @@ class ShiftScheduleApp : Application() {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "notification_worker",
-            ExistingPeriodicWorkPolicy.REPLACE,
+            ExistingPeriodicWorkPolicy.KEEP,
             request
         )
     }

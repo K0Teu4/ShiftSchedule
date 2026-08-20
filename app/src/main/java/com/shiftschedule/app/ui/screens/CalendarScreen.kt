@@ -51,7 +51,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.ui.components.CalendarSkeleton
@@ -59,7 +58,6 @@ import com.shiftschedule.app.ui.components.DayCell
 import com.shiftschedule.app.ui.components.EditDayModal
 import com.shiftschedule.app.ui.components.EditScheduleModal
 import com.shiftschedule.app.ui.components.OnboardingScreen
-import com.shiftschedule.app.ui.components.ScreenHeader
 import com.shiftschedule.app.ui.components.TipCard
 import com.shiftschedule.app.ui.components.WeekHeader
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
@@ -187,7 +185,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                         ) {
                             Text(tr("today_label"), style = MaterialTheme.typography.titleMedium)
                             Text(
-                                text = todayShift?.let { it.emoji + " " + it.displayName } ?: tr("no_shift"),
+                                text = todayShift?.let { it.emoji + " " + it.displayName(lang) } ?: tr("no_shift"),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = todayShift?.color ?: MaterialTheme.colorScheme.onSurfaceVariant
@@ -201,6 +199,14 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                             StatChip(tr("day_shifts"), stats["total_day"] ?: 0, androidx.compose.ui.graphics.Color(0xFF34C759))
                             StatChip(tr("night_shifts"), stats["total_night"] ?: 0, androidx.compose.ui.graphics.Color(0xFF5856D6))
                             StatChip(tr("off_days"), stats["total_off"] ?: 0, androidx.compose.ui.graphics.Color(0xFFFF9500))
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatChip(tr("total_holiday"), stats["total_holiday"] ?: 0, androidx.compose.ui.graphics.Color(0xFFFF2D55))
+                            StatChip(tr("total_sick"), stats["total_sick"] ?: 0, androidx.compose.ui.graphics.Color(0xFFFF3B30))
+                            StatChip(tr("total_vacation"), stats["total_vacation"] ?: 0, androidx.compose.ui.graphics.Color(0xFF00C7BE))
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -274,10 +280,13 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(checked = selectedScheduleIds.contains(schedule.id == selectedScheduleId), onClick = {
-                                viewModel.selectSchedule(schedule.id)
-                                showSchedulePicker = false
-                            })
+                            RadioButton(
+                                selected = schedule.id == selectedScheduleId,
+                                onClick = {
+                                    viewModel.selectSchedule(schedule.id)
+                                    showSchedulePicker = false
+                                }
+                            )
                             Text(schedule.name, modifier = Modifier.padding(start = 8.dp))
                         }
                     }
@@ -307,7 +316,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                         ) {
                             Text(schedule.name, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                text = shift?.let { it.emoji + " " + it.displayName(LocalLang.current) } ?: "—",
+                                text = shift?.let { it.emoji + " " + it.displayName(lang) } ?: "—",
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
@@ -394,3 +403,5 @@ private fun StatChip(label: String, value: Int, color: androidx.compose.ui.graph
         }
     }
 }
+
+

@@ -1,5 +1,4 @@
-﻿import java.util.UUID
-package com.shiftschedule.app.ui.components
+﻿package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +19,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
 import com.shiftschedule.app.util.tr
+import java.util.UUID
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +51,7 @@ fun TemplateEditorModal(
     val trimmed = name.trim()
     val canSave = trimmed.isNotBlank() && pattern.isNotEmpty()
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -62,9 +63,7 @@ fun TemplateEditorModal(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-
             Spacer(modifier = Modifier.height(12.dp))
-
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -72,9 +71,7 @@ fun TemplateEditorModal(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -82,9 +79,7 @@ fun TemplateEditorModal(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Text(tr("add_shifts"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -97,9 +92,7 @@ fun TemplateEditorModal(
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
             Text(
                 tr("sequence"),
                 style = MaterialTheme.typography.titleMedium,
@@ -134,15 +127,13 @@ fun TemplateEditorModal(
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
-
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = {
                         onSave(
                             Template(
-                                id = UUID.randomUUID().toString()?.id ?: 0,
+                                id = initial?.id ?: 0,
                                 name = trimmed,
                                 description = description.trim(),
                                 pattern = pattern.joinToString(","),
@@ -156,8 +147,8 @@ fun TemplateEditorModal(
                 }
                 OutlinedButton(onClick = onDismiss) { Text(tr("cancel")) }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
+

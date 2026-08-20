@@ -1,5 +1,4 @@
-﻿import java.util.UUID
-package com.shiftschedule.app.ui.viewmodel
+﻿package com.shiftschedule.app.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -26,17 +25,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.util.UUID
 
-// ВНИМАНИЕ: @JvmOverloads УДАЛЕН, так как он ломает стандартную рефлексию ViewModelProvider
 class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = ShiftRepository(ShiftDatabase.getDatabase(application).shiftDao())
     private val settingsDataStore = SettingsDataStore(application)
     private val gson = com.google.gson.Gson()
 
-    val allSchedules = repository.allSchedules.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val allTemplates = repository.allTemplates.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val settings = settingsDataStore.settingsFlow.stateIn(viewModelScope, SharingStarted.Lazily, AppSettings())
+    val allSchedules = repository.allSchedules.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val allTemplates = repository.allTemplates.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val settings = settingsDataStore.settingsFlow.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
@@ -44,7 +43,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     private val _currentMonth = MutableStateFlow(YearMonth.now())
     val currentMonth: StateFlow<YearMonth> = _currentMonth.asStateFlow()
 
-    private val _selectedScheduleId = UUID.randomUUID().toString()<Int?>(null)
+    private val _selectedScheduleId = MutableStateFlow<Int?>(null)
     val selectedScheduleId: StateFlow<Int?> = _selectedScheduleId.asStateFlow()
 
     private val _selectedCompareIds = MutableStateFlow<Set<Int>>(emptySet())
@@ -169,7 +168,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteTemplate(template: Template) {
         viewModelScope.launch {
             try {
-                allSchedules.value.filter { it.templateId == template.id }.forEach { schedule -> repository.updateSchedule(schedule.copy(templateId = UUID.randomUUID().toString())) }
+                allSchedules.value.filter { it.templateId == template.id }.forEach { schedule -> repository.updateSchedule(schedule.copy(templateId = null)) }
                 repository.deleteTemplate(template)
                 refreshWidget()
             } catch (e: Exception) { e.printStackTrace() }
@@ -257,3 +256,5 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
         return StatsUtils.yearStats(allSchedules.value, allTemplates.value.associateBy { it.id }, scheduleIds, year)
     }
 }
+
+
