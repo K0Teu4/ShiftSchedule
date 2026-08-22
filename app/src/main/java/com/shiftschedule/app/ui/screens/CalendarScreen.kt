@@ -1,42 +1,33 @@
 package com.shiftschedule.app.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,21 +40,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.Schedule
-import com.shiftschedule.app.ui.components.CalendarSkeleton
+import com.shiftschedule.app.data.model.ShiftType
+import com.shiftschedule.app.ui.components.AppHeader
 import com.shiftschedule.app.ui.components.DayCell
 import com.shiftschedule.app.ui.components.EditDayModal
 import com.shiftschedule.app.ui.components.EditScheduleModal
-import com.shiftschedule.app.ui.components.OnboardingScreen
-import com.shiftschedule.app.ui.components.TipCard
+import com.shiftschedule.app.ui.components.EmptyState
+import com.shiftschedule.app.ui.components.SectionLabel
+import com.shiftschedule.app.ui.components.ShiftHeroCard
+import com.shiftschedule.app.ui.components.StatPill
+import com.shiftschedule.app.ui.components.SurfaceCard
 import com.shiftschedule.app.ui.components.WeekHeader
+import com.shiftschedule.app.ui.components.OnboardingScreen
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
 import com.shiftschedule.app.util.DateUtils
 import com.shiftschedule.app.util.LocalLang
@@ -71,296 +64,197 @@ import com.shiftschedule.app.util.monthLocale
 import com.shiftschedule.app.util.tr
 import java.time.LocalDate
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CalendarScreen(viewModel: ShiftViewModel) {
     val schedules by viewModel.allSchedules.collectAsState()
     val templates by viewModel.allTemplates.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val currentMonth by viewModel.currentMonth.collectAsState()
-    val selectedScheduleId by viewModel.selectedScheduleId.collectAsState()
-    val isLoaded by viewModel.isLoaded.collectAsState()
-    val haptics = LocalHapticFeedback.current
+    val selectedId by viewModel.selectedScheduleId.collectAsState()
+    val loaded by viewModel.isLoaded.collectAsState()
     val lang = LocalLang.current
-    var showCreateModal by remember { mutableStateOf(false) }
-    var editSchedule by remember { mutableStateOf<Schedule?>(null) }
+
+    var showCreate by remember { mutableStateOf(false) }
+    var showPicker by remember { mutableStateOf(false) }
     var editDay by remember { mutableStateOf<LocalDate?>(null) }
-    var whoWhereDate by remember { mutableStateOf<LocalDate?>(null) }
-    var showSchedulePicker by remember { mutableStateOf(false) }
-    var dragAmountX by remember { mutableStateOf(0f) }
-    val selectedSchedule by remember(schedules, selectedScheduleId) {
-        derivedStateOf { schedules.find { it.id == selectedScheduleId } ?: schedules.firstOrNull() }
+    var whoWhere by remember { mutableStateOf<LocalDate?>(null) }
+
+    val selected by remember(schedules, selectedId) { derivedStateOf { schedules.firstOrNull { it.id == selectedId } ?: schedules.firstOrNull() } }
+
+    LaunchedEffect(schedules, selectedId) {
+        if (schedules.isEmpty()) viewModel.selectSchedule(null)
+        else if (selectedId == null || schedules.none { it.id == selectedId }) viewModel.selectSchedule(schedules.first().id)
     }
-    LaunchedEffect(schedules, selectedScheduleId) {
-        if (schedules.isEmpty()) {
-            if (selectedScheduleId != null) viewModel.selectSchedule(null)
-        } else if (selectedScheduleId == null || schedules.none { it.id == selectedScheduleId }) {
-            viewModel.selectSchedule(schedules.first().id)
+
+    if (!loaded) return
+    if (!settings.hasCompletedOnboarding && schedules.isEmpty()) {
+        OnboardingScreen(onCreateClick = { showCreate = true })
+        if (showCreate) {
+            EditScheduleModal(null, templates, settings.hourRate, settings.dayHours, settings.nightHours, { showCreate = false }) { schedule ->
+                viewModel.addSchedule(schedule) { viewModel.selectSchedule(it) }
+                viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
+                showCreate = false
+            }
         }
-    }
-    if (!isLoaded) {
-        CalendarSkeleton()
         return
     }
-    if (!settings.hasCompletedOnboarding && schedules.isEmpty()) {
-        OnboardingScreen(onCreateClick = { showCreateModal = true })
-    } else {
-        Scaffold(
-            floatingActionButton = {
-                FloatingActionButton(onClick = { showCreateModal = true }) {
-                    Icon(Icons.Filled.Add, contentDescription = tr("add_schedule"))
+
+    Scaffold(
+        floatingActionButton = { FloatingActionButton(onClick = { showCreate = true }, shape = RoundedCornerShape(20.dp)) { Icon(Icons.Filled.Add, tr("add_schedule")) } }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding).widthIn(max = 720.dp).padding(horizontal = 18.dp),
+            verticalArrangement = spacedBy(14.dp)
+        ) {
+            item { Spacer(Modifier.height(6.dp)) }
+            item {
+                AppHeader(
+                    title = "ShiftWeave",
+                    subtitle = DateUtils.monthTitle(currentMonth, monthLocale()),
+                    action = {
+                        Surface(onClick = { showPicker = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(selected?.name ?: tr("schedule_label"), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Filled.ExpandMore, null, modifier = Modifier.padding(start = 2.dp))
+                            }
+                        }
+                    }
+                )
+            }
+            if (selected != null) {
+                item {
+                    val today = LocalDate.now()
+                    val todayShift = viewModel.getShiftForDate(selected!!, today)
+                    val next = (1..120).asSequence().map { today.plusDays(it.toLong()) }.map { it to viewModel.getShiftForDate(selected!!, it) }.firstOrNull { it.second == ShiftType.DAY || it.second == ShiftType.NIGHT }
+                    ShiftHeroCard(
+                        dateLabel = "Сегодня · ${today.dayOfMonth}.${today.monthValue}",
+                        shift = todayShift,
+                        secondaryLabel = next?.let { "Следующая · ${it.first.dayOfMonth}.${it.first.monthValue} · ${it.second?.displayName(lang)}" } ?: "Следующая смена не найдена",
+                        onToday = { viewModel.goToday() }
+                    )
+                }
+                item {
+                    val stats = viewModel.getMonthStats(listOf(selected!!.id), currentMonth)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = spacedBy(8.dp)) {
+                        StatPill("☀️", (stats["total_day"] ?: 0).toString(), "День", Modifier.weight(1f))
+                        StatPill("🌙", (stats["total_night"] ?: 0).toString(), "Ночь", Modifier.weight(1f))
+                        StatPill("🏠", (stats["total_off"] ?: 0).toString(), "Выход", Modifier.weight(1f))
+                    }
+                }
+                item {
+                    val stats = viewModel.getMonthStats(listOf(selected!!.id), currentMonth)
+                    SurfaceCard {
+                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Итоги месяца", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${stats["total_hours"] ?: 0} ч", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Заработок", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(if ((stats["total_salary"] ?: 0) > 0) "${stats["total_salary"]} ₽" else "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            } else {
+                item { EmptyState(tr("no_schedules_yet"), tr("create_first"), tr("add_schedule"), { showCreate = true }) }
+            }
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { viewModel.previousMonth() }) { Icon(Icons.Filled.ChevronLeft, tr("prev_month")) }
+                    Text(DateUtils.monthTitle(currentMonth, monthLocale()), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    Surface(onClick = { viewModel.goToday() }, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Today, null, modifier = Modifier.size(16.dp))
+                            Text("Сегодня", modifier = Modifier.padding(start = 5.dp), style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                    IconButton(onClick = { viewModel.nextMonth() }) { Icon(Icons.Filled.ChevronRight, tr("next_month")) }
                 }
             }
-        ) { padding ->
-            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-                Column(
-                    modifier = Modifier
-                        .widthIn(max = 900.dp)
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp)
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures(
-                                onDragEnd = {
-                                    when {
-                                        dragAmountX > 100f -> viewModel.previousMonth()
-                                        dragAmountX < -100f -> viewModel.nextMonth()
-                                    }
-                                    dragAmountX = 0f
-                                }
-                            ) { change, dragAmount ->
-                                dragAmountX += dragAmount
-                                change.consume()
-                            }
-                        }
-                ) {
-                    if (schedules.isEmpty()) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(20.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(tr("no_schedules_yet"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    tr("create_first"),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 4.dp)
+            item { WeekHeader(settings.weekStart, lang) }
+            item {
+                val days = DateUtils.getDaysInMonth(currentMonth)
+                val offset = DateUtils.getFirstDayOffset(currentMonth, settings.weekStart)
+                val cells = buildList<LocalDate?> { repeat(offset) { add(null) }; addAll(days); while (size % 7 != 0) add(null) }
+                Column(verticalArrangement = spacedBy(6.dp)) {
+                    cells.chunked(7).forEach { week ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = spacedBy(6.dp)) {
+                            week.forEach { date ->
+                                if (date == null) Box(Modifier.weight(1f).height(58.dp)) else DayCell(
+                                    day = date.dayOfMonth,
+                                    shiftType = selected?.let { viewModel.getShiftForDate(it, date) },
+                                    isToday = date == LocalDate.now(),
+                                    isCurrentMonth = true,
+                                    showEmoji = settings.showEmoji,
+                                    isHoliday = settings.rfHolidays && com.shiftschedule.app.util.RuHolidays.isHoliday(date),
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { editDay = date },
+                                    onLongClick = { whoWhere = date }
                                 )
-                                TextButton(onClick = { showCreateModal = true }, modifier = Modifier.padding(top = 8.dp)) {
-                                    Text(tr("add_schedule"))
-                                }
-                            }
-                        }
-                        return@Scaffold
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); viewModel.previousMonth() }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = tr("prev_month"))
-                        }
-                        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = DateUtils.monthTitle(currentMonth, monthLocale()), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        }
-                        IconButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); viewModel.nextMonth() }) {
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = tr("next_month"))
-                        }
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        HeaderChip(tr("today")) { viewModel.goToday() }
-                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                        HeaderChip((selectedSchedule?.name ?: tr("schedule_label")) + " \u25BE") { showSchedulePicker = true }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (!viewModel.isTipSeen("calendar")) {
-                        TipCard(text = tr("tip_calendar"), onClose = { viewModel.markTipSeen("calendar") }, modifier = Modifier.padding(bottom = 8.dp))
-                    }
-                    selectedSchedule?.let { schedule ->
-                        val todayShift = viewModel.getShiftForDate(schedule, LocalDate.now())
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                            Text(tr("today_label"), style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                text = todayShift?.let { (if (settings.showEmoji) it.emoji else it.displayName(lang).take(1)) + " " + it.displayName(lang) } ?: tr("no_shift"),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = todayShift?.color ?: MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        val stats = viewModel.getMonthStats(listOf(schedule.id), currentMonth)
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                                EmojiStat("\u2600\uFE0F", stats["total_day"] ?: 0)
-                                EmojiStat("\uD83C\uDF19", stats["total_night"] ?: 0)
-                                EmojiStat("\uD83C\uDFE0", stats["total_off"] ?: 0)
-                                EmojiStat("\uD83C\uDF89", stats["total_holiday"] ?: 0)
-                                EmojiStat("\uD83E\uDD12", stats["total_sick"] ?: 0)
-                                EmojiStat("\uD83C\uDF34", stats["total_vacation"] ?: 0)
-                            }
-                            val hours = stats["total_hours"] ?: 0
-                        val salary = stats["total_salary"] ?: 0
-                        if (hours > 0 || (selectedSchedule?.hourRate ?: 0) > 0) {
-                            val suffix = if (salary > 0) " · " + tr("salary_line", salary) else ""
-                            Text(
-                                tr("total_hours") + ": $hours" + suffix,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    WeekHeader(weekStart = settings.weekStart, lang = lang)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AnimatedContent(
-                        targetState = currentMonth,
-                        transitionSpec = {
-                            if (targetState.isAfter(initialState)) {
-                                (slideInHorizontally(animationSpec = tween(300)) { it } + fadeIn(tween(300))) togetherWith
-                                    (slideOutHorizontally(animationSpec = tween(300)) { -it } + fadeOut(tween(300)))
-                            } else {
-                                (slideInHorizontally(animationSpec = tween(300)) { -it } + fadeIn(tween(300))) togetherWith
-                                    (slideOutHorizontally(animationSpec = tween(300)) { it } + fadeOut(tween(300)))
-                            }
-                        },
-                        label = "month"
-                    ) { month ->
-                        val days = DateUtils.getDaysInMonth(month)
-                        val firstDayOffset = DateUtils.getFirstDayOffset(month, settings.weekStart)
-                        val today = LocalDate.now()
-                        val cells = mutableListOf<LocalDate?>()
-                        repeat(firstDayOffset) { cells.add(null) }
-                        cells.addAll(days)
-                        while (cells.size % 7 != 0) cells.add(null)
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            cells.chunked(7).forEach { rowCells ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    rowCells.forEach { date ->
-                                        if (date == null) {
-                                            Box(modifier = Modifier.weight(1f).aspectRatio(1f))
-                                        } else {
-                                            val shift = selectedSchedule?.let { viewModel.getShiftForDate(it, date) }
-                                            DayCell(
-                                                day = date.dayOfMonth,
-                                                shiftType = shift,
-                                                isToday = date == today,
-                                                isCurrentMonth = date.month == month.month,
-                                                showEmoji = settings.showEmoji,
-                                                isHoliday = settings.rfHolidays && com.shiftschedule.app.util.RuHolidays.isHoliday(date),
-                                                modifier = Modifier.weight(1f),
-                                                onClick = { editDay = date },
-                                                onLongClick = { whoWhereDate = date }
-                                            )
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(80.dp))
                 }
+            }
+            item {
+                SurfaceCard {
+                    Column(Modifier.padding(16.dp)) {
+                        SectionLabel("Быстрые действия")
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = spacedBy(8.dp)) {
+                            Button(onClick = { editDay = LocalDate.now() }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("Сегодня") }
+                            TextButton(onClick = { showPicker = true }, modifier = Modifier.weight(1f)) { Text("Сменить график") }
+                        }
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(84.dp)) }
+        }
+    }
+
+    if (showPicker) {
+        ModalBottomSheet(onDismissRequest = { showPicker = false }) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+                Text("Выберите график", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.height(12.dp))
+                schedules.forEach { schedule ->
+                    Surface(onClick = { viewModel.selectSchedule(schedule.id); showPicker = false }, shape = RoundedCornerShape(18.dp), color = if (schedule.id == selectedId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(schedule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                            if (schedule.id == selectedId) Text("Активен", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
             }
         }
     }
-    if (showSchedulePicker) {
-        AlertDialog(
-            onDismissRequest = { showSchedulePicker = false },
-            title = { Text(tr("select_schedule")) },
-            text = {
-                Column {
-                    schedules.forEach { schedule ->
-                        Row(modifier = Modifier.fillMaxWidth().clickable { viewModel.selectSchedule(schedule.id); showSchedulePicker = false }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = schedule.id == selectedScheduleId, onClick = { viewModel.selectSchedule(schedule.id); showSchedulePicker = false })
-                            Text(schedule.name, modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                    TextButton(onClick = { showSchedulePicker = false; showCreateModal = true }) { Text(tr("add_schedule")) }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showSchedulePicker = false }) { Text(tr("close")) } }
-        )
-    }
-    whoWhereDate?.let { date ->
-        AlertDialog(
-            onDismissRequest = { whoWhereDate = null },
-            title = { Text(tr("who_where") + " \u00B7 ${date.dayOfMonth}.${date.monthValue}") },
-            text = {
-                Column {
-                    viewModel.getShiftsForDate(date).forEach { (schedule, shift) ->
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(schedule.name, style = MaterialTheme.typography.bodyLarge)
-                            Text(text = shift?.let { it.emoji + " " + it.displayName(lang) } ?: "\u2014", style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { whoWhereDate = null }) { Text(tr("close")) } }
-        )
-    }
+
     editDay?.let { date ->
-        EditDayModal(
-            schedules = schedules,
-            selectedScheduleId = selectedScheduleId,
-            date = date,
-            currentShift = selectedSchedule?.let { viewModel.getShiftForDate(it, date) },
-            onDismiss = { editDay = null },
-            onSave = { schedule, type, range, days, cycle ->
-                viewModel.updateDayException(schedule, date, type.code, range, days, cycle)
-                editDay = null
-            },
-            onClear = { schedule ->
-                viewModel.clearDayException(schedule, date)
-                editDay = null
-            }
-        )
+        EditDayModal(schedules, selectedId, date, selected?.let { viewModel.getShiftForDate(it, date) }, { editDay = null }, { schedule, type, range, days, cycle -> viewModel.updateDayException(schedule, date, type.code, range, days, cycle); editDay = null }, { schedule -> viewModel.clearDayException(schedule, date); editDay = null })
     }
-    if (showCreateModal) {
-        EditScheduleModal(
-            initial = null,
-            templates = templates,
-            defaultHourRate = settings.hourRate,
-            defaultDayHours = settings.dayHours,
-            defaultNightHours = settings.nightHours,
-            onDismiss = { showCreateModal = false },
-            onSave = { schedule ->
-                viewModel.addSchedule(schedule) { createdId ->
-                    viewModel.selectSchedule(createdId)
+    whoWhere?.let { date ->
+        ModalBottomSheet(onDismissRequest = { whoWhere = null }) {
+            Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                Text("Графики · ${date.dayOfMonth}.${date.monthValue}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Spacer(Modifier.height(12.dp))
+                viewModel.getShiftsForDate(date).forEach { (schedule, shift) ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(schedule.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(shift?.let { "${it.emoji} ${it.displayName(lang)}" } ?: "—", style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
-                viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
-                showCreateModal = false
+                Spacer(Modifier.height(20.dp))
             }
-        )
+        }
     }
-    editSchedule?.let { schedule ->
-        EditScheduleModal(
-            initial = schedule,
-            templates = templates,
-            onDismiss = { editSchedule = null },
-            onSave = { updated ->
-                viewModel.updateSchedule(updated)
-                editSchedule = null
-            }
-        )
+    if (showCreate) {
+        EditScheduleModal(null, templates, settings.hourRate, settings.dayHours, settings.nightHours, { showCreate = false }) { schedule ->
+            viewModel.addSchedule(schedule) { viewModel.selectSchedule(it) }
+            viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
+            showCreate = false
+        }
     }
 }
-
-@Composable
-private fun EmojiStat(icon: String, value: Int) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(icon, fontSize = 16.sp)
-        Text(value.toString(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun HeaderChip(text: String, onClick: () -> Unit) {
-    val haptics = LocalHapticFeedback.current
-    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface).clickable { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() }.padding(horizontal = 12.dp, vertical = 6.dp)) {
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-
-

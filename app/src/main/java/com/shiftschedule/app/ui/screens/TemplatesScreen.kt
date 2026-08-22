@@ -2,539 +2,160 @@ package com.shiftschedule.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
+import com.shiftschedule.app.ui.components.AppHeader
 import com.shiftschedule.app.ui.components.EditScheduleModal
-import com.shiftschedule.app.ui.components.ReorderState
-import com.shiftschedule.app.ui.components.ScreenHeader
-import com.shiftschedule.app.ui.components.SwipeToDelete
+import com.shiftschedule.app.ui.components.EmptyState
+import com.shiftschedule.app.ui.components.SectionLabel
+import com.shiftschedule.app.ui.components.SurfaceCard
 import com.shiftschedule.app.ui.components.TemplateEditorModal
-import com.shiftschedule.app.ui.components.dragContainer
-import com.shiftschedule.app.ui.components.rememberReorderState
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
+import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.tr
-import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatesScreen(viewModel: ShiftViewModel) {
-    val templates by viewModel.allTemplates.collectAsState()
     val schedules by viewModel.allSchedules.collectAsState()
+    val templates by viewModel.allTemplates.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val haptics = LocalHapticFeedback.current
-    val density = LocalDensity.current
-    val itemHeight = with(density) { 96.dp.toPx() }
+    val lang = LocalLang.current
 
-    var showCreateSchedule by remember { mutableStateOf(false) }
-    var scheduleToEdit by remember { mutableStateOf<Schedule?>(null) }
-    var scheduleToDelete by remember { mutableStateOf<Schedule?>(null) }
-    var showCreateTemplate by remember { mutableStateOf(false) }
-    var templateToEdit by remember { mutableStateOf<Template?>(null) }
-    var templateToDelete by remember { mutableStateOf<Template?>(null) }
+    var createTemplate by remember { mutableStateOf(false) }
+    var editTemplate by remember { mutableStateOf<Template?>(null) }
+    var createSchedule by remember { mutableStateOf(false) }
+    var editSchedule by remember { mutableStateOf<Schedule?>(null) }
+    var deleteSchedule by remember { mutableStateOf<Schedule?>(null) }
+    var deleteTemplate by remember { mutableStateOf<Template?>(null) }
 
-    val copyCreatedMsg = tr("copy_created")
-    val undoMsg = tr("undo")
-    val deletedTemplate = tr("deleted_schedule")
+    val filteredSchedules = schedules.filter { it.name.contains(query, true) }
+    val filteredTemplates = templates.filter { it.name.contains(query, true) || it.description.contains(query, true) }
 
-    val reorderSchedules = remember { ReorderState() }
-    reorderSchedules.onMove = { from, to -> viewModel.reorderSchedules(from, to) }
-
-    val reorderTemplates = remember { ReorderState() }
-    reorderTemplates.onMove = { from, to -> viewModel.reorderTemplates(from, to) }
-
-    val searchActive = query.isNotBlank()
-    val filteredSchedules = if (searchActive) {
-        schedules.filter { it.name.contains(query, ignoreCase = true) }
-    } else {
-        schedules
-    }
-    val filteredTemplates = if (searchActive) {
-        templates.filter {
-            it.name.contains(query, ignoreCase = true) ||
-                it.description.contains(query, ignoreCase = true)
-        }
-    } else {
-        templates
-    }
-
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, floatingActionButton = { androidx.compose.material3.FloatingActionButton(onClick = { showCreateTemplate = true }) { Icon(Icons.Filled.Add, contentDescription = tr("new_template")) } }) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .widthIn(max = 900.dp)
-                .padding(16.dp)
-        ) {
-            ScreenHeader(
-                title = tr("templates_title"),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            OutlinedTextField(
-                value = query,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(tr("search_placeholder")) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = tr("search")) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = tr("clear"))
-                        }
-                    }
-                },
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (!viewModel.isTipSeen("templates")) {
-                com.shiftschedule.app.ui.components.TipCard(
-                    text = tr("tip_templates"),
-                    onClose = { viewModel.markTipSeen("templates") },
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+    Scaffold(floatingActionButton = { FloatingActionButton(onClick = { createTemplate = true }, shape = RoundedCornerShape(20.dp)) { Icon(Icons.Filled.Add, tr("new_template")) } }) { padding ->
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).widthIn(max = 720.dp).padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { Spacer(Modifier.height(6.dp)) }
+            item {
+                AppHeader("Шаблоны", "Соберите ритм смен один раз — календарь повторит его автоматически")
             }
-
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (searchActive) {
-                    if (filteredSchedules.isNotEmpty()) item { SectionTitle(tr("my_schedules")) }
-                    if (filteredTemplates.any { it.isBuiltIn }) item { SectionTitle(tr("built_in"), topPadding = filteredSchedules.isNotEmpty()) }
-                    if (filteredTemplates.any { !it.isBuiltIn }) item { SectionTitle(tr("user_templates"), topPadding = true) }
-                    if (filteredSchedules.isEmpty() && filteredTemplates.isEmpty()) {
-                        item { EmptyCard(tr("search_no_results"), tr("search_try_again")) { viewModel.setSearchQuery("") } }
-                    }
-                }
-                if (!searchActive) {
-                    item { SectionTitle(tr("my_schedules")) }
-                }
-
-                if (filteredSchedules.isEmpty() && !searchActive) {
-                    item {
-                        EmptyCard(tr("no_schedules_yet"), tr("create_first")) { showCreateSchedule = true }
-                    }
-                } else {
-                    itemsIndexed(filteredSchedules, key = { _, s -> "s${s.id}" }) { index, schedule ->
-                        val templateName = templates.find { it.id == schedule.templateId }?.name
-                        SwipeToDelete(onDismiss = { scheduleToDelete = schedule }) {
-                            ScheduleCard(
-                                schedule = schedule,
-                                templateName = templateName,
-                                modifier = Modifier.dragContainer(
-                                    state = reorderSchedules,
-                                    index = index,
-                                    itemHeight = itemHeight,
-                                    itemCount = filteredSchedules.size,
-                                    enabled = !searchActive
-                                ),
-                                onEdit = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    scheduleToEdit = schedule
-                                },
-                                onCopy = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.duplicateSchedule(schedule)
-                                    scope.launch { snackbarHostState.showSnackbar(copyCreatedMsg) }
-                                },
-                                onDelete = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    scheduleToDelete = schedule
-                                }
-                            )
-                        }
-                    }
-                }
-
-                if (!searchActive) {
-                    item { SectionTitle(tr("built_in"), topPadding = true) }
-                }
-                itemsIndexed(
-                    filteredTemplates.filter { it.isBuiltIn },
-                    key = { _, t -> "b${t.id}" }
-                ) { _, template ->
-                    TemplateCard(
-                        template = template,
-                        onEdit = { templateToEdit = template },
-                        onCopy = {
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            viewModel.duplicateTemplate(template)
-                            scope.launch { snackbarHostState.showSnackbar(copyCreatedMsg) }
-                        },
-                        onDelete = null
-                    )
-                }
-
-                if (!searchActive) {
-                    item { SectionTitle(tr("user_templates"), topPadding = true) }
-                }
-                val userTemplates = filteredTemplates.filter { !it.isBuiltIn }
-                if (userTemplates.isEmpty() && !searchActive) {
-                    item {
-                        EmptyCard(tr("no_templates_yet"), tr("create_template")) { showCreateTemplate = true }
-                    }
-                } else {
-                    itemsIndexed(userTemplates, key = { _, t -> "u${t.id}" }) { index, template ->
-                        SwipeToDelete(onDismiss = { templateToDelete = template }) {
-                            TemplateCard(
-                                template = template,
-                                modifier = Modifier.dragContainer(
-                                    state = reorderTemplates,
-                                    index = index,
-                                    itemHeight = itemHeight,
-                                    itemCount = userTemplates.size,
-                                    enabled = !searchActive
-                                ),
-                                onEdit = { templateToEdit = template },
-                                onCopy = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    viewModel.duplicateTemplate(template)
-                                    scope.launch { snackbarHostState.showSnackbar(copyCreatedMsg) }
-                                },
-                                onDelete = { templateToDelete = template }
-                            )
-                        }
-                    }
+            item {
+                OutlinedTextField(value = query, onValueChange = viewModel::setSearchQuery, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Поиск графика или шаблона") }, leadingIcon = { Icon(Icons.Filled.Search, null) }, singleLine = true, shape = RoundedCornerShape(18.dp))
+            }
+            item { SectionLabel("Мои графики", action = "Добавить", onAction = { createSchedule = true }) }
+            if (filteredSchedules.isEmpty()) {
+                item { EmptyState("Пока нет графиков", "Создайте первый — он появится в календаре и статистике.", "Создать график", { createSchedule = true }) }
+            } else {
+                items(filteredSchedules, key = { it.id }) { schedule ->
+                    ScheduleCardNew(schedule, templates.firstOrNull { it.id == schedule.templateId }, lang, onEdit = { editSchedule = schedule }, onCopy = { viewModel.duplicateSchedule(schedule) }, onDelete = { deleteSchedule = schedule })
                 }
             }
+            item { Spacer(Modifier.height(6.dp)); SectionLabel("Готовые шаблоны", action = "Все встроенные") }
+            items(filteredTemplates.filter { it.isBuiltIn }, key = { "b${it.id}" }) { template ->
+                TemplateCardNew(template, lang, onUse = { createSchedule = true }, onEdit = { editTemplate = template }, onCopy = { viewModel.duplicateTemplate(template) }, onDelete = null)
+            }
+            item { SectionLabel("Мои шаблоны", action = "Создать", onAction = { createTemplate = true }) }
+            val userTemplates = filteredTemplates.filter { !it.isBuiltIn }
+            if (userTemplates.isEmpty()) item { SurfaceCard { Column(Modifier.fillMaxWidth().padding(18.dp)) { Text("Создайте свой цикл", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold); Text("Например: 2 день → 2 ночь → 2 выходных.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)); Button(onClick = { createTemplate = true }, modifier = Modifier.padding(top = 12.dp), shape = RoundedCornerShape(14.dp)) { Text("Новый шаблон") } } } }
+            else items(userTemplates, key = { "u${it.id}" }) { template -> TemplateCardNew(template, lang, onUse = { createSchedule = true }, onEdit = { editTemplate = template }, onCopy = { viewModel.duplicateTemplate(template) }, onDelete = { deleteTemplate = template }) }
+            item { Spacer(Modifier.height(90.dp)) }
         }
     }
 
-    if (showCreateSchedule) {
-        EditScheduleModal(
-            initial = null,
-            templates = templates,
-            defaultHourRate = settings.hourRate,
-            defaultDayHours = settings.dayHours,
-            defaultNightHours = settings.nightHours,
-            onDismiss = { showCreateSchedule = false },
-            onSave = { s ->
-                viewModel.addSchedule(s)
-                showCreateSchedule = false
-            }
-        )
-    }
-
-    scheduleToEdit?.let { s ->
-        EditScheduleModal(
-            initial = s,
-            templates = templates,
-            onDismiss = { scheduleToEdit = null },
-            onSave = { updated ->
-                viewModel.updateSchedule(updated)
-                scheduleToEdit = null
-            }
-        )
-    }
-
-    scheduleToDelete?.let { s ->
-        AlertDialog(
-            onDismissRequest = { scheduleToDelete = null },
-            title = { Text(tr("delete_schedule_q")) },
-            text = { Text(tr("delete_schedule_text", s.name)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val toDelete = scheduleToDelete
-                        scheduleToDelete = null
-                        if (toDelete != null) {
-                            scope.launch {
-                                viewModel.deleteScheduleNow(toDelete)
-                                val result = snackbarHostState.showSnackbar(
-                                    String.format(deletedTemplate, toDelete.name),
-                                    undoMsg
-                                )
-                                if (result == SnackbarResult.ActionPerformed) {
-                                    viewModel.restoreSchedule(toDelete)
-                                }
-                            }
-                        }
-                    }
-                ) { Text(tr("delete")) }
-            },
-            dismissButton = {
-                TextButton(onClick = { scheduleToDelete = null }) { Text(tr("cancel")) }
-            }
-        )
-    }
-
-    if (showCreateTemplate) {
-        TemplateEditorModal(
-            initial = null,
-            onDismiss = { showCreateTemplate = false },
-            onSave = { t ->
-                viewModel.addTemplate(t)
-                showCreateTemplate = false
-            }
-        )
-    }
-
-    templateToEdit?.let { t ->
-        TemplateEditorModal(
-            initial = t,
-            onDismiss = { templateToEdit = null },
-            onSave = { updated ->
-                if (updated.id == 0) viewModel.addTemplate(updated) else viewModel.updateTemplate(updated)
-                templateToEdit = null
-            }
-        )
-    }
-
-    templateToDelete?.let { t ->
-        val affected = schedules.count { it.templateId == t.id }
-        AlertDialog(
-            onDismissRequest = { templateToDelete = null },
-            title = { Text(tr("delete_template_q")) },
-            text = {
-                if (affected > 0) {
-                    Text(tr("template_used", affected))
-                } else {
-                    Text(tr("template_deleted_text"))
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteTemplate(t)
-                        templateToDelete = null
-                    }
-                ) { Text(tr("delete")) }
-            },
-            dismissButton = {
-                TextButton(onClick = { templateToDelete = null }) { Text(tr("cancel")) }
-            }
-        )
-    }
+    if (createTemplate) TemplateEditorModal(null, { createTemplate = false }) { viewModel.addTemplate(it); createTemplate = false }
+    editTemplate?.let { TemplateEditorModal(it, { editTemplate = null }) { viewModel.updateTemplate(it); editTemplate = null } }
+    if (createSchedule) EditScheduleModal(null, templates, settings.hourRate, settings.dayHours, settings.nightHours, { createSchedule = false }) { viewModel.addSchedule(it) { viewModel.selectSchedule(it) }; createSchedule = false }
+    editSchedule?.let { EditScheduleModal(it, templates, onDismiss = { editSchedule = null }) { viewModel.updateSchedule(it); editSchedule = null } }
+    deleteSchedule?.let { item -> AlertDialog(onDismissRequest = { deleteSchedule = null }, title = { Text("Удалить график?") }, text = { Text("${item.name} будет удалён. Смены-исключения тоже исчезнут.") }, confirmButton = { TextButton(onClick = { viewModel.deleteSchedule(item); deleteSchedule = null }) { Text("Удалить") } }, dismissButton = { TextButton(onClick = { deleteSchedule = null }) { Text("Отмена") } }) }
+    deleteTemplate?.let { item -> AlertDialog(onDismissRequest = { deleteTemplate = null }, title = { Text("Удалить шаблон?") }, text = { Text("Графики, которые используют его, останутся, но перестанут быть привязаны к шаблону.") }, confirmButton = { TextButton(onClick = { viewModel.deleteTemplate(item); deleteTemplate = null }) { Text("Удалить") } }, dismissButton = { TextButton(onClick = { deleteTemplate = null }) { Text("Отмена") } }) }
 }
 
 @Composable
-private fun SectionTitle(text: String, topPadding: Boolean = false) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(top = if (topPadding) 16.dp else 0.dp, bottom = 4.dp)
-    )
-}
-
-@Composable
-private fun EmptyCard(title: String, subtitle: String, onAction: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            OutlinedButton(onClick = onAction, modifier = Modifier.padding(top = 12.dp)) {
-                Text("+ " + tr("create"))
+private fun ScheduleCardNew(schedule: Schedule, template: Template?, lang: String, onEdit: () -> Unit, onCopy: () -> Unit, onDelete: () -> Unit) {
+    val accent = runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }.getOrDefault(MaterialTheme.colorScheme.primary)
+    SurfaceCard {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.foundation.layout.Box(Modifier.size(48.dp).clip(CircleShape).background(accent.copy(alpha = .18f)))
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                Text(schedule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                Text(template?.name ?: "Ручной график", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${schedule.dayHours}ч день · ${schedule.nightHours}ч ночь", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp))
             }
+            IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, "Копировать") }
+            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, "Изменить") }
+            IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, "Удалить") }
         }
     }
 }
 
 @Composable
-private fun ScheduleCard(
-    schedule: Schedule,
-    templateName: String?,
-    modifier: Modifier = Modifier,
-    onEdit: () -> Unit,
-    onCopy: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .clip(CircleShape)
-                    .background(
-                        runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }
-                            .getOrElse { MaterialTheme.colorScheme.primary }
-                    )
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp)
-            ) {
-                Text(
-                    schedule.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    (templateName ?: tr("manual")) + " · " + tr("from") + " " +
-                        (com.shiftschedule.app.util.DateUtils.tryParseDate(schedule.startDate)?.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")) ?: tr("invalid_date")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+private fun TemplateCardNew(template: Template, lang: String, onUse: () -> Unit, onEdit: () -> Unit, onCopy: () -> Unit, onDelete: (() -> Unit)?) {
+    SurfaceCard {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(template.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text(template.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (template.isBuiltIn) Text("Встроенный", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
-            IconButton(onClick = onCopy) {
-                Icon(Icons.Filled.ContentCopy, contentDescription = tr("copy"))
+            Row(Modifier.fillMaxWidth().padding(top = 13.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                template.getPatternList().take(8).forEach { code ->
+                    val type = ShiftType.fromCode(code)
+                    if (type != null) androidx.compose.material3.Surface(shape = RoundedCornerShape(12.dp), color = type.color.copy(alpha = .16f)) { Text(type.emoji, modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)) }
+                }
             }
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Filled.Edit, contentDescription = tr("edit"))
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = tr("delete"),
-                    tint = MaterialTheme.colorScheme.error
-                )
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = onUse, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)) { Text("Использовать") }
+                IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, "Копировать") }
+                IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, "Изменить") }
+                if (onDelete != null) IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, "Удалить") }
             }
         }
     }
 }
-
-@Composable
-private fun TemplateCard(
-    template: Template,
-    modifier: Modifier = Modifier,
-    onEdit: () -> Unit,
-    onCopy: (() -> Unit)? = null,
-    onDelete: (() -> Unit)?
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        template.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        template.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Filled.Edit, contentDescription = tr("edit"))
-                }
-                if (onCopy != null) {
-                    IconButton(onClick = onCopy) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = tr("copy"))
-                    }
-                }
-                if (onDelete != null) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = tr("delete"),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                template.getPatternList().forEach { code ->
-                    val shiftType = ShiftType.values().find { it.code == code }
-                    shiftType?.let { type ->
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(type.color.copy(alpha = 0.3f), RoundedCornerShape(6.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = type.emoji, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-

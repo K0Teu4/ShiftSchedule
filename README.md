@@ -45,3 +45,24 @@ RELEASE_KEY_PASSWORD=...
 ```
 
 A debug build does not require release signing credentials.
+
+## UI/UX redesign
+
+The current branch contains a full visual/product redesign focused on the core question: **what shift do I have today and when is the next one?**
+
+### Design principles
+- The calendar is a glanceable primary surface, not a spreadsheet.
+- Current and next shifts are surfaced before the month grid.
+- Statistics are compact and secondary to the schedule.
+- Editing uses bottom sheets with progressive disclosure instead of dense dialogs.
+- Built-in templates are treated as reusable presets; custom templates remain editable.
+- Settings are grouped by intent: appearance, notifications, calculations, data and controls.
+- Empty states explain the next useful action.
+- Themes share the same component geometry and typography hierarchy.
+- Long-press remains available for multi-schedule day comparison, but the primary tap path is always explicit.
+
+### Main navigation
+1. **Calendar** — current shift, next shift, month, quick edit.
+2. **Templates** — schedules and reusable shift patterns.
+3. **Compare** — shared days off and multi-schedule calendar, with month/year views.
+4. **Settings** — appearance, notifications, calculations, backup and controls.

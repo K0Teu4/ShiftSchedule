@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -21,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -36,7 +36,7 @@ import com.shiftschedule.app.ui.screens.TemplatesScreen
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
 import com.shiftschedule.app.util.tr
 
-sealed class Screen(val route: String, val titleKey: String, val icon: ImageVector) {
+sealed class Screen(val route: String, val titleKey: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     object Calendar : Screen("calendar", "tab_calendar", Icons.Filled.CalendarMonth)
     object Templates : Screen("templates", "tab_templates", Icons.Filled.ViewList)
     object Compare : Screen("compare", "tab_compare", Icons.Filled.CompareArrows)
@@ -46,43 +46,28 @@ sealed class Screen(val route: String, val titleKey: String, val icon: ImageVect
 @Composable
 fun AppNavigation(viewModel: ShiftViewModel) {
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    val entry by navController.currentBackStackEntryAsState()
+    val destination = entry?.destination
+    val items = listOf(Screen.Calendar, Screen.Templates, Screen.Compare, Screen.Settings)
 
-    val items = listOf(
-        Screen.Calendar,
-        Screen.Templates,
-        Screen.Compare,
-        Screen.Settings
-    )
+    fun navigate(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isTablet = maxWidth >= 600.dp
-
-        if (isTablet) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                NavigationRail(modifier = Modifier.fillMaxHeight()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val tablet = maxWidth >= 600.dp
+        if (tablet) {
+            Row(Modifier.fillMaxSize()) {
+                NavigationRail(containerColor = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxHeight()) {
                     items.forEach { screen ->
-                        NavigationRailItem(
-                            icon = { Icon(screen.icon, contentDescription = tr(screen.titleKey)) },
-                            label = { Text(tr(screen.titleKey)) },
-                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
+                        NavigationRailItem(selected = destination?.hierarchy?.any { it.route == screen.route } == true, onClick = { navigate(screen.route) }, icon = { Icon(screen.icon, tr(screen.titleKey)) }, label = { Text(tr(screen.titleKey)) })
                     }
                 }
-
-                NavHost(
-                    navController = navController,
-                    startDestination = Screen.Calendar.route,
-                    modifier = Modifier.fillMaxSize()
-                ) {
+                NavHost(navController, Screen.Calendar.route, Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
                     composable(Screen.Calendar.route) { CalendarScreen(viewModel) }
                     composable(Screen.Templates.route) { TemplatesScreen(viewModel) }
                     composable(Screen.Compare.route) { CompareScreen(viewModel) }
@@ -91,30 +76,16 @@ fun AppNavigation(viewModel: ShiftViewModel) {
             }
         } else {
             Scaffold(
+                containerColor = MaterialTheme.colorScheme.background,
                 bottomBar = {
-                    NavigationBar {
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 0.dp) {
                         items.forEach { screen ->
-                            NavigationBarItem(
-                                icon = { Icon(screen.icon, contentDescription = tr(screen.titleKey)) },
-                                label = { Text(tr(screen.titleKey)) },
-                                selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                                onClick = {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            )
+                            NavigationBarItem(selected = destination?.hierarchy?.any { it.route == screen.route } == true, onClick = { navigate(screen.route) }, icon = { Icon(screen.icon, tr(screen.titleKey)) }, label = { Text(tr(screen.titleKey)) }, alwaysShowLabel = true)
                         }
                     }
                 }
-            ) { innerPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = Screen.Calendar.route,
-                    modifier = Modifier.padding(innerPadding)
-                ) {
+            ) { padding ->
+                NavHost(navController, Screen.Calendar.route, Modifier.fillMaxSize().padding(padding)) {
                     composable(Screen.Calendar.route) { CalendarScreen(viewModel) }
                     composable(Screen.Templates.route) { TemplatesScreen(viewModel) }
                     composable(Screen.Compare.route) { CompareScreen(viewModel) }

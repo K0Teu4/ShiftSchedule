@@ -3,34 +3,41 @@ package com.shiftschedule.app.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Brightness4
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DataObject
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SettingsSuggest
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,350 +52,148 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.shiftschedule.app.ui.components.ScreenHeader
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import com.shiftschedule.app.ui.components.AppHeader
+import com.shiftschedule.app.ui.components.SectionLabel
+import com.shiftschedule.app.ui.components.SurfaceCard
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
 import com.shiftschedule.app.util.tr
 import kotlinx.coroutines.launch
 
-private val themePreviews = mapOf(
-    "dark" to (Color(0xFF1A1A1A) to Color(0xFF5856D6)),
-    "light" to (Color(0xFFFAF9F6) to Color(0xFF4F46E5)),
-    "sepia" to (Color(0xFF33291D) to Color(0xFFD9A05B)),
-    "midnight" to (Color(0xFF000000) to Color(0xFF00E5FF)),
-    "ocean" to (Color(0xFF07404C) to Color(0xFF22B8CF)),
-    "forest" to (Color(0xFF142019) to Color(0xFF7BC46A)),
-    "berry" to (Color(0xFF221220) to Color(0xFFD985C7)),
-    "sand" to (Color(0xFFFFF6E9) to Color(0xFFB26B1F)),
-    "plum" to (Color(0xFF2A1439) to Color(0xFFB388FF)),
-    "graphite" to (Color(0xFF1A1C20) to Color(0xFFC9CCD3)),
+private val themePreviews = listOf(
+    "dark" to (Color(0xFF111118) to Color(0xFF6C63FF)), "light" to (Color(0xFFF7F7FB) to Color(0xFF5A55D6)),
+    "sepia" to (Color(0xFF33291D) to Color(0xFFD9A05B)), "midnight" to (Color(0xFF05070B) to Color(0xFF4DD9FF)),
+    "ocean" to (Color(0xFF08343D) to Color(0xFF27C7D9)), "forest" to (Color(0xFF102019) to Color(0xFF7BC46A)),
+    "berry" to (Color(0xFF241226) to Color(0xFFD985C7)), "sand" to (Color(0xFFFFF6E9) to Color(0xFFB26B1F)),
+    "plum" to (Color(0xFF2A1439) to Color(0xFFB388FF)), "graphite" to (Color(0xFF1A1C20) to Color(0xFFC9CCD3)),
     "dynamic" to (Color(0xFFEADDFF) to Color(0xFF6750A4))
 )
 
 @Composable
 fun SettingsScreen(viewModel: ShiftViewModel) {
     val settings by viewModel.settings.collectAsState()
-    var showTimeDialog by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var rateText by remember { mutableStateOf(if (settings.hourRate == 0) "" else settings.hourRate.toString()) }
-    var dayHoursText by remember { mutableStateOf(settings.dayHours.toString()) }
-    var nightHoursText by remember { mutableStateOf(settings.nightHours.toString()) }
-    var salaryFieldFocused by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    var timeDialog by remember { mutableStateOf(false) }
+    var rate by remember { mutableStateOf(settings.hourRate.takeIf { it > 0 }?.toString() ?: "") }
+    var dayHours by remember { mutableStateOf(settings.dayHours.toString()) }
+    var nightHours by remember { mutableStateOf(settings.nightHours.toString()) }
+    var focused by remember { mutableStateOf(false) }
 
-    LaunchedEffect(settings.hourRate, settings.dayHours, settings.nightHours, salaryFieldFocused) {
-        if (!salaryFieldFocused) {
-            rateText = if (settings.hourRate == 0) "" else settings.hourRate.toString()
-            dayHoursText = settings.dayHours.toString()
-            nightHoursText = settings.nightHours.toString()
+    fun commitNumbers() {
+        val newRate = rate.filter(Char::isDigit).toIntOrNull()?.coerceIn(0, 1_000_000) ?: 0
+        val newDay = dayHours.filter(Char::isDigit).toIntOrNull()?.coerceIn(1, 24) ?: settings.dayHours
+        val newNight = nightHours.filter(Char::isDigit).toIntOrNull()?.coerceIn(1, 24) ?: settings.nightHours
+        viewModel.updateSettings(settings.copy(hourRate = newRate, dayHours = newDay, nightHours = newNight))
+    }
+    LaunchedEffect(settings.hourRate, settings.dayHours, settings.nightHours, focused) { if (!focused) { rate = if (settings.hourRate == 0) "" else settings.hourRate.toString(); dayHours = settings.dayHours.toString(); nightHours = settings.nightHours.toString() } }
+    DisposableEffect(Unit) { onDispose { commitNumbers() } }
+
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let { scope.launch { runCatching { val json = viewModel.exportData(); context.contentResolver.openOutputStream(it)?.use { out -> out.write(json.toByteArray()) }; snackbar.showSnackbar("Резервная копия сохранена") }.onFailure { snackbar.showSnackbar("Не удалось экспортировать данные") } } } }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { scope.launch { runCatching { val json = context.contentResolver.openInputStream(it)?.use { input -> input.readBytes().toString(Charsets.UTF_8) } ?: error("empty"); if (viewModel.importData(json)) snackbar.showSnackbar("Данные восстановлены") else snackbar.showSnackbar("Файл не прошёл проверку") }.onFailure { snackbar.showSnackbar("Не удалось импортировать данные") } } } }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp)) {
+            Spacer(Modifier.size(8.dp))
+            AppHeader("Настройки", "Настройте приложение один раз — дальше оно работает само")
+            Spacer(Modifier.size(16.dp))
+
+            SettingGroup("Внешний вид", Icons.Filled.Palette) {
+                SectionLabel("Тема")
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 10.dp)) {
+                    themePreviews.forEach { (id, colors) -> ThemeChip(id, colors.first, colors.second, settings.theme) { viewModel.updateSettings(settings.copy(theme = it)) } }
+                }
+                Spacer(Modifier.size(14.dp))
+                ChoiceRow("Язык", when (settings.lang) { "ru" -> "Русский"; "en" -> "English"; else -> "Системный" }, Icons.Filled.Language) {
+                    viewModel.updateSettings(settings.copy(lang = when (settings.lang) { "system" -> "ru"; "ru" -> "en"; else -> "system" }))
+                }
+                ChoiceRow("Начало недели", if (settings.weekStart == "sun") "Воскресенье" else "Понедельник", Icons.Filled.CalendarToday) { viewModel.updateSettings(settings.copy(weekStart = if (settings.weekStart == "mon") "sun" else "mon")) }
+                SwitchRow("Показывать emoji", "Солнце, луна и другие обозначения в календаре", settings.showEmoji, Icons.Filled.Brightness4) { viewModel.updateSettings(settings.copy(showEmoji = it)) }
+            }
+
+            SettingGroup("Уведомления", Icons.Filled.NotificationsNone) {
+                SwitchRow("Напоминания", "Показывать ближайшую смену каждый день", settings.notifications, Icons.Filled.NotificationsNone) { viewModel.updateSettings(settings.copy(notifications = it)) }
+                if (settings.notifications) ChoiceRow("Время", settings.reminderTime, Icons.Filled.Schedule) { timeDialog = true }
+            }
+
+            SettingGroup("Расчёты", Icons.Filled.SettingsSuggest) {
+                SwitchRow("Праздники РФ", "Подсвечивать государственные праздники в календаре", settings.rfHolidays, Icons.Filled.CalendarToday) { viewModel.updateSettings(settings.copy(rfHolidays = it)) }
+                Text("Значения по умолчанию для новых графиков", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(rate, { rate = it.filter(Char::isDigit).take(7) }, label = { Text("₽/час") }, modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused }, singleLine = true, shape = RoundedCornerShape(16.dp))
+                    OutlinedTextField(dayHours, { dayHours = it.filter(Char::isDigit).take(2) }, label = { Text("День, ч") }, modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused }, singleLine = true, shape = RoundedCornerShape(16.dp))
+                    OutlinedTextField(nightHours, { nightHours = it.filter(Char::isDigit).take(2) }, label = { Text("Ночь, ч") }, modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused }, singleLine = true, shape = RoundedCornerShape(16.dp))
+                }
+                Button(onClick = { commitNumbers() }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = RoundedCornerShape(15.dp)) { Text("Сохранить расчёты") }
+            }
+
+            SettingGroup("Данные", Icons.Filled.Backup) {
+                Text("Резервная копия содержит графики, шаблоны и настройки расписания. Храните файл отдельно от телефона.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { exportLauncher.launch("shiftweave-backup.json") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(15.dp)) { Text("Экспорт") }
+                    Button(onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(15.dp)) { Text("Импорт") }
+                }
+            }
+
+            SettingGroup("Управление", Icons.Filled.SettingsSuggest) {
+                ControlLine("Нажатие", "изменить смену в конкретный день")
+                ControlLine("Удержание", "сравнить все графики на дату")
+                ControlLine("Свайп", "перейти к соседнему месяцу")
+                ControlLine("Перетаскивание", "изменить порядок графиков и шаблонов")
+            }
+
+            SettingGroup("О ShiftWeave", Icons.Filled.DataObject) {
+                Text("Планировщик рабочих смен для тех, у кого жизнь не укладывается в стандартный понедельник–пятницу.", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.size(10.dp))
+                Text("Локальные данные · работает без интернета · JSON backup · несколько графиков · сравнение", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.size(10.dp))
+                Text("Версия 1.0", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.size(96.dp))
         }
     }
 
-    fun commitSalaryDefaults() {
-        val rate = rateText.filter(Char::isDigit).take(6).toIntOrNull() ?: 0
-        val day = dayHoursText.filter(Char::isDigit).take(2).toIntOrNull()?.coerceIn(1, 24) ?: settings.dayHours
-        val night = nightHoursText.filter(Char::isDigit).take(2).toIntOrNull()?.coerceIn(1, 24) ?: settings.nightHours
-        viewModel.updateSettings(settings.copy(hourRate = rate, dayHours = day, nightHours = night))
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { commitSalaryDefaults() }
-    }
-
-    val exportedMsg = tr("exported")
-    val exportErrMsg = tr("export_error")
-    val importedMsg = tr("imported")
-    val importBadMsg = tr("import_bad")
-    val importErrMsg = tr("import_error")
-
-    val exportLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        uri?.let {
-            scope.launch {
-                try {
-                    val json = viewModel.exportData()
-                    context.contentResolver.openOutputStream(it)?.use { os -> os.write(json.toByteArray(Charsets.UTF_8)) }
-                    snackbarHostState.showSnackbar(exportedMsg)
-                } catch (e: Exception) {
-                    snackbarHostState.showSnackbar(exportErrMsg)
-                }
-            }
-        }
-    }
-    val importLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            scope.launch {
-                try {
-                    val json = context.contentResolver.openInputStream(it)?.use { input -> input.readBytes().toString(Charsets.UTF_8) } ?: return@launch
-                    val ok = viewModel.importData(json)
-                    snackbarHostState.showSnackbar(if (ok) importedMsg else importBadMsg)
-                } catch (e: Exception) {
-                    snackbarHostState.showSnackbar(importErrMsg)
-                }
-            }
-        }
-    }
-
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp).verticalScroll(rememberScrollState())) {
-            ScreenHeader(title = tr("tab_settings"), modifier = Modifier.padding(bottom = 12.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("appearance_theme"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
-                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                        themePreviews.forEach { (id, pair) ->
-                            ThemeDot(id, tr("theme_$id"), pair.first, pair.second, settings.theme) { viewModel.updateSettings(settings.copy(theme = it)) }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("notifications"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(tr("reminders"), style = MaterialTheme.typography.bodyLarge)
-                            Text(tr("reminders_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = settings.notifications, onCheckedChange = { viewModel.updateSettings(settings.copy(notifications = it)) })
-                    }
-                    if (settings.notifications) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(tr("time_dialog_title") + ": " + settings.reminderTime, style = MaterialTheme.typography.bodyMedium)
-                        OutlinedButton(onClick = { showTimeDialog = true }) { Text(tr("change_time")) }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("display"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(tr("emoji"), style = MaterialTheme.typography.bodyLarge)
-                            Text(tr("emoji_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = settings.showEmoji, onCheckedChange = { viewModel.updateSettings(settings.copy(showEmoji = it)) })
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(tr("week_start"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(weekStart = "mon")) }) {
-                        RadioButton(selected = settings.weekStart == "mon", onClick = { viewModel.updateSettings(settings.copy(weekStart = "mon")) })
-                        Text(tr("mon"), modifier = Modifier.padding(start = 8.dp))
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(weekStart = "sun")) }) {
-                        RadioButton(selected = settings.weekStart == "sun", onClick = { viewModel.updateSettings(settings.copy(weekStart = "sun")) })
-                        Text(tr("sun"), modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("lang_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(lang = "system")) }) {
-                        RadioButton(selected = settings.lang == "system", onClick = { viewModel.updateSettings(settings.copy(lang = "system")) })
-                        Text(tr("lang_system"), modifier = Modifier.padding(start = 8.dp))
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(lang = "ru")) }) {
-                        RadioButton(selected = settings.lang == "ru", onClick = { viewModel.updateSettings(settings.copy(lang = "ru")) })
-                        Text(tr("lang_ru"), modifier = Modifier.padding(start = 8.dp))
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { viewModel.updateSettings(settings.copy(lang = "en")) }) {
-                        RadioButton(selected = settings.lang == "en", onClick = { viewModel.updateSettings(settings.copy(lang = "en")) })
-                        Text(tr("lang_en"), modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("holidays_salary"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(tr("rf_holidays_title"), style = MaterialTheme.typography.bodyLarge)
-                            Text(tr("rf_holidays_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = settings.rfHolidays, onCheckedChange = { viewModel.updateSettings(settings.copy(rfHolidays = it)) })
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(tr("salary_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = rateText,
-                            onValueChange = { rateText = it.filter(Char::isDigit).take(6) },
-                            label = { Text(tr("rate_label")) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).onFocusChanged { state ->
-                                salaryFieldFocused = state.isFocused
-                                if (!state.isFocused) commitSalaryDefaults()
-                            }
-                        )
-                        OutlinedTextField(
-                            value = dayHoursText,
-                            onValueChange = { dayHoursText = it.filter(Char::isDigit).take(2) },
-                            label = { Text(tr("day_hours")) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).onFocusChanged { state ->
-                                salaryFieldFocused = state.isFocused
-                                if (!state.isFocused) commitSalaryDefaults()
-                            }
-                        )
-                        OutlinedTextField(
-                            value = nightHoursText,
-                            onValueChange = { nightHoursText = it.filter(Char::isDigit).take(2) },
-                            label = { Text(tr("night_hours")) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f).onFocusChanged { state ->
-                                salaryFieldFocused = state.isFocused
-                                if (!state.isFocused) commitSalaryDefaults()
-                            }
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    Text(tr("data_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { exportLauncher.launch("shift-schedule-backup.json") }) { Text(tr("export")) }
-                        OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) }) { Text(tr("import")) }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(tr("settings_controls_title"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-                    ControlRow("\uD83D\uDC46", tr("ctrl_tap"))
-                    ControlRow("\uD83D\uDC65", tr("ctrl_long"))
-                    ControlRow("\u2194\uFE0F", tr("ctrl_swipe"))
-                    ControlRow("\u270A", tr("ctrl_drag"))
-                    ControlRow("\u29C9", tr("ctrl_copy"))
-                    ControlRow("\uD83C\uDD9A", tr("ctrl_compare"))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("ShiftWeave", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(tr("app_info_desc"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    AboutBullet(tr("about_1"))
-                    AboutBullet(tr("about_2"))
-                    AboutBullet(tr("about_3"))
-                    AboutBullet(tr("about_4"))
-                    AboutBullet(tr("about_5"))
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(tr("app_license"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = tr("version_footer"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-
-    if (showTimeDialog) {
-        val parts = settings.reminderTime.split(":")
-        var hours by remember { mutableStateOf(parts.getOrNull(0) ?: "08") }
-        var minutes by remember { mutableStateOf(parts.getOrNull(1) ?: "00") }
-        AlertDialog(
-            onDismissRequest = { showTimeDialog = false },
-            title = { Text(tr("time_dialog_title")) },
-            text = {
-                Column {
-                    Text(tr("time_dialog_hint"), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        OutlinedTextField(value = hours, onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) hours = it }, label = { Text("0-23") }, singleLine = true, modifier = Modifier.width(80.dp))
-                        Text(":", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(horizontal = 8.dp))
-                        OutlinedTextField(value = minutes, onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) minutes = it }, label = { Text("0-59") }, singleLine = true, modifier = Modifier.width(80.dp))
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val h = hours.toIntOrNull(); val m = minutes.toIntOrNull()
-                        if (h != null && m != null && h in 0..23 && m in 0..59) {
-                            viewModel.updateSettings(settings.copy(reminderTime = String.format("%02d:%02d", h, m)))
-                            showTimeDialog = false
-                        }
-                    },
-                    enabled = (hours.toIntOrNull() ?: -1) in 0..23 && (minutes.toIntOrNull() ?: -1) in 0..59
-                ) { Text(tr("save")) }
-            },
-            dismissButton = { TextButton(onClick = { showTimeDialog = false }) { Text(tr("cancel")) } }
-        )
+    if (timeDialog) {
+        var value by remember(settings.reminderTime) { mutableStateOf(settings.reminderTime) }
+        AlertDialog(onDismissRequest = { timeDialog = false }, title = { Text("Время напоминания") }, text = { OutlinedTextField(value, { value = it.filter { c -> c.isDigit() || c == ':' }.take(5) }, label = { Text("HH:MM") }, singleLine = true) }, confirmButton = { TextButton(onClick = { val parts = value.split(":"); val h = parts.getOrNull(0)?.toIntOrNull(); val m = parts.getOrNull(1)?.toIntOrNull(); if (h != null && m != null && h in 0..23 && m in 0..59) { viewModel.updateSettings(settings.copy(reminderTime = "%02d:%02d".format(h, m))); timeDialog = false } }) { Text("Сохранить") } }, dismissButton = { TextButton(onClick = { timeDialog = false }) { Text("Отмена") } })
     }
 }
 
-@Composable
-private fun ThemeDot(id: String, label: String, bg: Color, pr: Color, current: String, onSelect: (String) -> Unit) {
+@Composable private fun SettingGroup(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, content: @Composable () -> Unit) {
+    SurfaceCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .13f)) { Icon(icon, null, modifier = Modifier.padding(9.dp), tint = MaterialTheme.colorScheme.primary) }
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 10.dp))
+            }
+            Spacer(Modifier.size(10.dp)); content()
+        }
+    }
+}
+
+@Composable private fun ChoiceRow(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Column(Modifier.weight(1f).padding(start = 10.dp)) { Text(title, fontWeight = FontWeight.SemiBold); Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) } Text("›", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    }
+}
+
+@Composable private fun SwitchRow(title: String, subtitle: String, checked: Boolean, icon: androidx.compose.ui.graphics.vector.ImageVector, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(title, fontWeight = FontWeight.SemiBold); Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }; Switch(checked, onChange) }
+}
+
+@Composable private fun ThemeChip(id: String, bg: Color, primary: Color, current: String, onSelect: (String) -> Unit) {
     val selected = current == id
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = 14.dp).clickable { onSelect(id) }) {
-        Box(
-            modifier = Modifier.size(46.dp).clip(CircleShape).background(bg).then(if (selected) Modifier.border(3.dp, pr, CircleShape) else Modifier.border(1.dp, Color(0x33888888), CircleShape)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(pr))
-        }
-        Text(label, style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+    Surface(onClick = { onSelect(id) }, shape = RoundedCornerShape(17.dp), color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Row(Modifier.padding(horizontal = 9.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) { androidx.compose.foundation.layout.Box(Modifier.size(26.dp).clip(CircleShape).background(bg)); androidx.compose.foundation.layout.Box(Modifier.size(12.dp).clip(CircleShape).background(primary).padding(start = 7.dp)); Text(id.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 6.dp), fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) }
     }
 }
 
-@Composable
-private fun ControlRow(icon: String, text: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(icon, fontSize = 18.sp, modifier = Modifier.size(28.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
-    }
-}
-
-@Composable
-private fun AboutBullet(text: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text("•", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
-    }
-}
-
-
-
-
-
-
+@Composable private fun ControlLine(title: String, desc: String) { Row(Modifier.fillMaxWidth().padding(vertical = 5.dp)) { Text(title, Modifier.width(125.dp), fontWeight = FontWeight.SemiBold); Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }

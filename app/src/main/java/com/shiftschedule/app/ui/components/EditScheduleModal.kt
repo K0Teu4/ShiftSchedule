@@ -4,29 +4,26 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.Schedule
+import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
 import com.shiftschedule.app.util.DateUtils
 import com.shiftschedule.app.util.tr
@@ -50,273 +48,62 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditScheduleModal(
-    initial: Schedule?,
-    templates: List<Template>,
-    defaultHourRate: Int = 0,
-    defaultDayHours: Int = 8,
-    defaultNightHours: Int = 16,
-    onDismiss: () -> Unit,
-    onSave: (Schedule) -> Unit
-) {
+fun EditScheduleModal(initial: Schedule?, templates: List<Template>, defaultHourRate: Int = 0, defaultDayHours: Int = 8, defaultNightHours: Int = 16, onDismiss: () -> Unit, onSave: (Schedule) -> Unit) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
-    var color by remember { mutableStateOf(initial?.color ?: "#5856D6") }
+    var color by remember { mutableStateOf(initial?.color ?: "#6750A4") }
     var templateId by remember { mutableStateOf(initial?.templateId) }
-    var startDate by remember { mutableStateOf(initial?.startDate?.let { DateUtils.tryParseDate(it) } ?: LocalDate.now()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var hourRate by remember { mutableStateOf(initial?.hourRate ?: defaultHourRate.coerceIn(0, 1_000_000)) }
+    var startDate by remember { mutableStateOf(initial?.startDate?.let(DateUtils::tryParseDate) ?: LocalDate.now()) }
+    var rate by remember { mutableStateOf(initial?.hourRate ?: defaultHourRate.coerceIn(0, 1_000_000)) }
     var dayHours by remember { mutableStateOf(initial?.dayHours ?: defaultDayHours.coerceIn(1, 24)) }
     var nightHours by remember { mutableStateOf(initial?.nightHours ?: defaultNightHours.coerceIn(1, 24)) }
+    var datePicker by remember { mutableStateOf(false) }
+    val colors = listOf("#6750A4", "#34C759", "#FF9500", "#FF3B30", "#AF52DE", "#00C7BE", "#FF2D55", "#5AC8FA", "#FFCC00", "#8E8E93", "#007AFF", "#FF6B35")
+    val selectedTemplate = templates.firstOrNull { it.id == templateId }
 
-    val trimmed = name.trim()
-    val canSave = trimmed.isNotBlank()
-    val colorOptions = listOf(
-        "#5856D6", "#34C759", "#FF9500", "#FF3B30", "#AF52DE", "#00C7BE",
-        "#FF2D55", "#5AC8FA", "#FFCC00", "#8E8E93", "#007AFF", "#FF6B35"
-    )
+    ModalBottomSheet(onDismissRequest = onDismiss, shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Text(if (initial == null) "Новый график" else "Настроить график", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            Text(if (initial == null) "Пара минут — и календарь будет считать всё сам." else "Изменения сохраняются только для этого графика.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+            Spacer(Modifier.size(18.dp))
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Text(
-                text = if (initial == null) tr("new_schedule") else tr("edit_schedule"),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            OutlinedTextField(name, { name = it.take(40) }, label = { Text("Название") }, placeholder = { Text("Основная работа") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
+            Spacer(Modifier.size(16.dp))
+            Text("Цвет", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth().padding(top = 9.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) { colors.take(6).forEach { ColorChoice(it, color == it) { color = it } } }
+            Row(Modifier.fillMaxWidth().padding(top = 9.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) { colors.drop(6).forEach { ColorChoice(it, color == it) { color = it } } }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(tr("name_label")) },
-                placeholder = { Text(tr("placeholder_name")) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(tr("color"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                colorOptions.take(6).forEach { c ->
-                    val selected = c == color
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(android.graphics.Color.parseColor(c)))
-                            .then(
-                                if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
-                                else Modifier
-                            )
-                            .clickable { color = c }
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                colorOptions.drop(6).take(6).forEach { c ->
-                    val selected = c == color
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(android.graphics.Color.parseColor(c)))
-                            .then(
-                                if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground, CircleShape)
-                                else Modifier
-                            )
-                            .clickable { color = c }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(tr("template"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clickable { templateId = null },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(selected = templateId == null, onClick = { templateId = null })
-                Text(
-                    tr("no_template"),
-                    modifier = Modifier.padding(start = 8.dp),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
+            Spacer(Modifier.size(18.dp))
+            Text("Ритм смен", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text("Выберите готовый цикл или оставьте ручной режим.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp, bottom = 8.dp))
+            Surface(onClick = { templateId = null }, shape = RoundedCornerShape(16.dp), color = if (templateId == null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) { Text("✦", color = MaterialTheme.colorScheme.primary, fontSize = 18.dp); Column(Modifier.padding(start = 10.dp)) { Text("Без шаблона", fontWeight = FontWeight.Bold); Text("Смены меняются вручную", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } } }
             templates.forEach { template ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .clickable { templateId = template.id },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(selected = templateId == template.id, onClick = { templateId = template.id })
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(template.name, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            template.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                val active = template.id == templateId
+                Surface(onClick = { templateId = template.id }, shape = RoundedCornerShape(16.dp), color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) { Text(template.name, color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, modifier = Modifier.size(width = 52.dp, height = 24.dp)); Column(Modifier.padding(start = 10.dp)) { Text(template.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant); if (active) Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) { template.getPatternList().take(8).forEach { code -> ShiftType.fromCode(code)?.let { t -> Text(t.emoji, modifier = Modifier.background(t.color.copy(alpha = .15f), RoundedCornerShape(8.dp)).padding(4.dp)) } } } } }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(tr("holidays_salary"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(tr("salary_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = if (hourRate == 0) "" else hourRate.toString(),
-                    onValueChange = { v -> hourRate = v.filter { it.isDigit() }.take(6).toIntOrNull() ?: 0 },
-                    label = { Text(tr("rate_label")) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = dayHours.toString(),
-                    onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) dayHours = n },
-                    label = { Text(tr("day_hours")) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = nightHours.toString(),
-                    onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) nightHours = n },
-                    label = { Text(tr("night_hours")) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
+            Spacer(Modifier.size(18.dp))
+            Text("Расчёт", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(if (rate == 0) "" else rate.toString(), { rate = it.filter(Char::isDigit).take(7).toIntOrNull() ?: 0 }, label = { Text("₽/час") }, singleLine = true, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp))
+                OutlinedTextField(dayHours.toString(), { it.filter(Char::isDigit).take(2).toIntOrNull()?.takeIf { n -> n in 1..24 }?.let { dayHours = it } }, label = { Text("День") }, singleLine = true, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp))
+                OutlinedTextField(nightHours.toString(), { it.filter(Char::isDigit).take(2).toIntOrNull()?.takeIf { n -> n in 1..24 }?.let { nightHours = it } }, label = { Text("Ночь") }, singleLine = true, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp))
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(tr("start_date"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            OutlinedButton(
-                onClick = { showDatePicker = true },
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Text(startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")))
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = {
-                        onSave(
-                            Schedule(
-                                id = initial?.id ?: 0,
-                                name = trimmed,
-                                color = color,
-                                templateId = templateId,
-                                startDate = DateUtils.formatDate(startDate),
-                                isActive = initial?.isActive ?: true,
-                                exceptions = initial?.exceptions ?: emptyMap(),
-                                cycleShifts = initial?.cycleShifts ?: emptyMap(),
-                                hourRate = hourRate,
-                                dayHours = dayHours,
-                                nightHours = nightHours
-                            )
-                        )
-                    },
-                    enabled = canSave
-                ) {
-                    Text(if (initial == null) tr("create") else tr("save"))
-                }
-                OutlinedButton(onClick = onDismiss) { Text(tr("cancel")) }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(Modifier.size(16.dp))
+            Text("Начало цикла", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Surface(onClick = { datePicker = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) { Text("${startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold); Text("Изменить", modifier = Modifier.weight(1f).padding(start = 10.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, color = MaterialTheme.colorScheme.primary) } }
+            Spacer(Modifier.size(20.dp))
+            Button(onClick = { onSave(Schedule(id = initial?.id ?: 0, name = name.trim(), color = color, templateId = templateId, startDate = DateUtils.formatDate(startDate), isActive = initial?.isActive ?: true, exceptions = initial?.exceptions ?: emptyMap(), cycleShifts = initial?.cycleShifts ?: emptyMap(), hourRate = rate, dayHours = dayHours, nightHours = nightHours)) }, enabled = name.trim().isNotEmpty(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(17.dp)) { Text(if (initial == null) "Создать график" else "Сохранить", fontWeight = FontWeight.Bold) }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Отмена") }
+            Spacer(Modifier.size(28.dp))
         }
     }
 
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = startDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        )
-
-        DatePickerDialog(
-            colors = DatePickerDefaults.colors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                headlineContentColor = MaterialTheme.colorScheme.onSurface,
-                weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                subheadContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                yearContentColor = MaterialTheme.colorScheme.onSurface,
-                currentYearContentColor = MaterialTheme.colorScheme.primary,
-                selectedYearContentColor = MaterialTheme.colorScheme.onPrimary,
-                selectedYearContainerColor = MaterialTheme.colorScheme.primary,
-                dayContentColor = MaterialTheme.colorScheme.onSurface,
-                selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
-                selectedDayContainerColor = MaterialTheme.colorScheme.primary,
-                todayContentColor = MaterialTheme.colorScheme.primary,
-                todayDateBorderColor = MaterialTheme.colorScheme.primary,
-                dayInSelectionRangeContentColor = MaterialTheme.colorScheme.onPrimary,
-                dayInSelectionRangeContainerColor = MaterialTheme.colorScheme.primary
-            ),
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        startDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                    }
-                    showDatePicker = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(tr("cancel"))
-                }
-            }
-        ) {
-            DatePicker(
-                state = datePickerState,
-                colors = DatePickerDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    headlineContentColor = MaterialTheme.colorScheme.onSurface,
-                    weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    subheadContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    yearContentColor = MaterialTheme.colorScheme.onSurface,
-                    currentYearContentColor = MaterialTheme.colorScheme.primary,
-                    selectedYearContentColor = MaterialTheme.colorScheme.onPrimary,
-                    selectedYearContainerColor = MaterialTheme.colorScheme.primary,
-                    dayContentColor = MaterialTheme.colorScheme.onSurface,
-                    selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
-                    selectedDayContainerColor = MaterialTheme.colorScheme.primary,
-                    todayContentColor = MaterialTheme.colorScheme.primary,
-                    todayDateBorderColor = MaterialTheme.colorScheme.primary,
-                    dividerColor = MaterialTheme.colorScheme.outline,
-                    dateTextFieldColors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-            )
-        }
+    if (datePicker) {
+        val state = rememberDatePickerState(initialSelectedDateMillis = startDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+        DatePickerDialog(onDismissRequest = { datePicker = false }, confirmButton = { TextButton(onClick = { state.selectedDateMillis?.let { startDate = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }; datePicker = false }) { Text("Готово") } }, dismissButton = { TextButton(onClick = { datePicker = false }) { Text("Отмена") } }) { DatePicker(state = state) }
     }
 }
+
+@Composable private fun ColorChoice(hex: String, selected: Boolean, onClick: () -> Unit) { Box(Modifier.size(38.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(hex))).border(if (selected) 3.dp else 0.dp, if (selected) MaterialTheme.colorScheme.onSurface else Color.Transparent, CircleShape).clickable(onClick = onClick)) }
