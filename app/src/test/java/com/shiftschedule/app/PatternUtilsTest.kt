@@ -95,10 +95,25 @@ class PatternUtilsTest {
     }
 
     @Test
-    fun `applyChange entire schedule fills from start`() {
+    fun `applyChange entire schedule fills from schedule start`() {
         val s = schedule("2026-08-01")
         val updated = PatternUtils.applyChange(s, LocalDate.of(2026, 8, 3), "N", "entire_schedule")
         assertEquals("N", updated.exceptions["2026-08-01"])
         assertEquals("N", updated.exceptions["2026-08-03"])
     }
+    @Test
+    fun `overlapping cycle period replaces previous cycle adjustment`() {
+        val s = schedule().copy(cycleShifts = mapOf("2026-08-10" to 5))
+        val updated = PatternUtils.applyPeriod(s, LocalDate.of(2026, 8, 12), 3, "V", true)
+        assertEquals(1, updated.cycleShifts.size)
+        assertEquals(3, updated.cycleShifts["2026-08-12"])
+    }
+
+    @Test
+    fun `applyPeriod without cycle removes overlapping old cycle adjustment`() {
+        val s = schedule().copy(cycleShifts = mapOf("2026-08-10" to 3))
+        val updated = PatternUtils.applyPeriod(s, LocalDate.of(2026, 8, 11), 2, "S", false)
+        assertEquals(0, updated.cycleShifts.size)
+    }
+
 }

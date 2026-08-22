@@ -19,4 +19,8 @@ enum class ShiftType(
     val displayName: String get() = nameRu
 
     fun displayName(lang: String): String = if (lang == "en") nameEn else nameRu
+
+    companion object {
+        fun fromCode(code: String?): ShiftType? = values().firstOrNull { it.code == code }
+    }
 }

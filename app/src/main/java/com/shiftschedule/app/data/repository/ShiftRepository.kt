@@ -22,4 +22,5 @@ class ShiftRepository(private val shiftDao: ShiftDao) {
     suspend fun updateTemplate(template: Template) = shiftDao.updateTemplate(template)
     suspend fun deleteTemplate(template: Template) = shiftDao.deleteTemplate(template)
     suspend fun deleteAllTemplates() = shiftDao.deleteAllTemplates()
+    suspend fun replaceAllData(schedules: List<Schedule>, templates: List<Template>) = shiftDao.replaceAllData(schedules, templates)
 }

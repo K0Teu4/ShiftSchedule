@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app
+package com.shiftschedule.app
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName

@@ -1,11 +1,13 @@
 package com.shiftschedule.app.notifications
 
 import android.content.Context
+import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.shiftschedule.app.data.local.SettingsDataStore
 import com.shiftschedule.app.data.local.ShiftDatabase
-import com.shiftschedule.app.util.PatternUtils
+import com.shiftschedule.app.domain.ShiftResolver
+import com.shiftschedule.app.util.Strings
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.LocalTime
@@ -20,52 +22,66 @@ class NotificationWorker(
         val settingsDataStore = SettingsDataStore(context)
         val settings = settingsDataStore.settingsFlow.first()
 
-        if (!settings.notifications) return Result.success()
+        if (!settings.notifications) {
+            NotificationScheduler.cancel(context)
+            return Result.success()
+        }
 
+        // Android 13+ can have the runtime permission denied even though the
+        // app-level setting is enabled. Do not crash or repeatedly retry.
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            NotificationScheduler.scheduleNext(context, settings.reminderTime)
+            return Result.success()
+        }
+
+        val targetTime = runCatching { LocalTime.parse(settings.reminderTime) }
+            .getOrElse { LocalTime.of(8, 0) }
         val now = LocalTime.now()
-        val parts = settings.reminderTime.split(":")
-        val targetHour = parts.getOrNull(0)?.toIntOrNull() ?: 8
-        val targetMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0
-
-        val timePassed = now.hour > targetHour || (now.hour == targetHour && now.minute >= targetMinute)
-        if (!timePassed) return Result.success()
-
         val today = LocalDate.now()
-        if (settings.lastNotificationDate == today.toString()) return Result.success()
+        val timePassed = !now.isBefore(targetTime)
+
+        if (!timePassed) {
+            NotificationScheduler.scheduleNext(context, settings.reminderTime)
+            return Result.success()
+        }
+
+        if (settings.lastNotificationDate == today.toString()) {
+            NotificationScheduler.scheduleNext(context, settings.reminderTime)
+            return Result.success()
+        }
 
         val dao = ShiftDatabase.getDatabase(context).shiftDao()
         val schedules = dao.getAllSchedules().first().filter { it.isActive }
         val templates = dao.getAllTemplates().first()
 
-        if (schedules.isEmpty()) return Result.success()
+        if (schedules.isEmpty()) {
+            NotificationScheduler.scheduleNext(context, settings.reminderTime)
+            return Result.success()
+        }
 
         val tomorrow = today.plusDays(1)
-
+        val lang = when (settings.lang) {
+            "ru" -> "ru"
+            "en" -> "en"
+            else -> Strings.getSystemLanguage()
+        }
         val shifts = schedules.map { schedule ->
             val template = templates.find { it.id == schedule.templateId }
-            schedule to PatternUtils.getShiftForDate(schedule, tomorrow, template)
+            schedule to ShiftResolver.resolve(schedule, tomorrow, template)
         }
 
         val lines = shifts.mapNotNull { (schedule, shift) ->
-            if (shift != null) schedule.name + " — " + shift.emoji + " " + shift.displayName else null
+            shift?.let { schedule.name + " — " + it.emoji + " " + it.displayName(lang) }
         }
 
-        if (lines.isEmpty()) return Result.success()
+        if (lines.isNotEmpty()) {
+            val sharedOff = schedules.size >= 2 && shifts.all { (_, shift) -> shift?.code == "O" }
+            val title = if (sharedOff) Strings.raw(lang, "notification_shared_off") else Strings.raw(lang, "notification_title")
+            NotificationHelper.showSummaryNotification(context, title, lines.joinToString("\n"))
+            settingsDataStore.updateSettings(settings.copy(lastNotificationDate = today.toString()))
+        }
 
-        val sharedOff = schedules.size >= 2 &&
-            shifts.all { (_, shift) -> shift?.code == "O" }
-
-        val title = if (sharedOff) "✦ Завтра общий выходной!" else "Смены завтра"
-
-        NotificationHelper.createNotificationChannel(context)
-        NotificationHelper.showSummaryNotification(
-            context,
-            title,
-            lines.joinToString("\n")
-        )
-
-        settingsDataStore.updateSettings(settings.copy(lastNotificationDate = today.toString()))
-
+        NotificationScheduler.scheduleNext(context, settings.reminderTime)
         return Result.success()
     }
 }

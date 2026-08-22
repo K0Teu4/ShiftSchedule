@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.components
+package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
 import com.shiftschedule.app.util.tr
-import java.util.UUID
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -49,6 +48,7 @@ fun TemplateEditorModal(
     var pattern by remember { mutableStateOf(initial?.getPatternList() ?: emptyList()) }
 
     val trimmed = name.trim()
+    val editingBuiltIn = initial?.isBuiltIn == true
     val canSave = trimmed.isNotBlank() && pattern.isNotEmpty()
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -59,7 +59,7 @@ fun TemplateEditorModal(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = if (initial == null) tr("new_template") else tr("edit_template"),
+                text = if (initial == null || editingBuiltIn) tr("new_template") else tr("edit_template"),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -81,6 +81,14 @@ fun TemplateEditorModal(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(tr("add_shifts"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            if (editingBuiltIn) {
+                Text(
+                    tr("built_in_edit_hint"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -89,6 +97,35 @@ fun TemplateEditorModal(
                 ShiftType.values().forEach { type ->
                     OutlinedButton(onClick = { pattern = pattern + type.code }) {
                         Text(type.emoji + " " + type.displayName)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                tr("preview"),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                pattern.take(14).forEachIndexed { index, code ->
+                    val type = ShiftType.fromCode(code)
+                    if (type != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(type.color.copy(alpha = 0.25f))
+                                .padding(vertical = 8.dp),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            Text(
+                                type.emoji,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
@@ -133,11 +170,12 @@ fun TemplateEditorModal(
                     onClick = {
                         onSave(
                             Template(
-                                id = initial?.id ?: 0,
+                                id = if (editingBuiltIn) 0 else (initial?.id ?: 0),
                                 name = trimmed,
                                 description = description.trim(),
                                 pattern = pattern.joinToString(","),
-                                isBuiltIn = initial?.isBuiltIn ?: false
+                                isBuiltIn = false,
+                                sortIndex = if (editingBuiltIn) 0 else (initial?.sortIndex ?: 0)
                             )
                         )
                     },

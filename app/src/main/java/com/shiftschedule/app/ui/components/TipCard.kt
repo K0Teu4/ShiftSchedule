@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.shiftschedule.app.util.tr
 
 @Composable
 fun TipCard(
@@ -62,7 +63,7 @@ fun TipCard(
                     visible = false
                     onClose()
                 }) {
-                    Icon(Icons.Filled.Close, contentDescription = "Скрыть")
+                    Icon(Icons.Filled.Close, contentDescription = tr("hide_tip"))
                 }
             }
         }

@@ -3,41 +3,19 @@ package com.shiftschedule.app.util
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
+import com.shiftschedule.app.domain.ShiftResolver
 import java.time.LocalDate
 
+/**
+ * Compatibility facade for existing callers. New domain code should use
+ * ShiftResolver directly.
+ */
 object PatternUtils {
     fun getShiftForDate(
         schedule: Schedule,
         date: LocalDate,
         template: Template?
-    ): ShiftType? {
-        val dateString = DateUtils.formatDate(date)
-
-        schedule.exceptions[dateString]?.let { code ->
-            return ShiftType.values().find { it.code == code }
-        }
-
-        if (template == null) return null
-
-        val startDate = DateUtils.parseDate(schedule.startDate)
-        var daysDiff = DateUtils.daysBetween(startDate, date).toInt()
-
-        if (daysDiff < 0) return null
-
-        for ((shiftStart, shiftDays) in schedule.cycleShifts) {
-            val shiftStartDate = DateUtils.parseDate(shiftStart)
-            if (!date.isBefore(shiftStartDate.plusDays(shiftDays.toLong()))) {
-                daysDiff -= shiftDays
-            }
-        }
-
-        val patternList = template.getPatternList()
-        if (patternList.isEmpty()) return null
-
-        val size = patternList.size
-        val index = ((daysDiff % size) + size) % size
-        return ShiftType.values().find { it.code == patternList[index] }
-    }
+    ): ShiftType? = ShiftResolver.resolve(schedule, date, template)
 
     fun applyChange(
         schedule: Schedule,
@@ -45,28 +23,31 @@ object PatternUtils {
         shiftCode: String,
         applyRange: String
     ): Schedule {
+        val normalizedCode = ShiftType.fromCode(shiftCode)?.code ?: return schedule
         val newExceptions = schedule.exceptions.toMutableMap()
 
         when (applyRange) {
             "this_day" -> {
-                newExceptions[DateUtils.formatDate(startDate)] = shiftCode
+                newExceptions[DateUtils.formatDate(startDate)] = normalizedCode
             }
             "this_and_following" -> {
                 var date = startDate
                 val maxDate = startDate.plusYears(5)
                 while (date.isBefore(maxDate)) {
-                    newExceptions[DateUtils.formatDate(date)] = shiftCode
+                    newExceptions[DateUtils.formatDate(date)] = normalizedCode
                     date = date.plusDays(1)
                 }
             }
             "entire_schedule" -> {
-                var date = DateUtils.parseDate(schedule.startDate)
-                val maxDate = date.plusYears(5)
+                val scheduleStart = DateUtils.tryParseDate(schedule.startDate) ?: return schedule
+                var date = scheduleStart
+                val maxDate = scheduleStart.plusYears(5)
                 while (date.isBefore(maxDate)) {
-                    newExceptions[DateUtils.formatDate(date)] = shiftCode
+                    newExceptions[DateUtils.formatDate(date)] = normalizedCode
                     date = date.plusDays(1)
                 }
             }
+            else -> return schedule
         }
 
         return schedule.copy(exceptions = newExceptions)
@@ -79,15 +60,26 @@ object PatternUtils {
         shiftCode: String,
         shiftCycle: Boolean
     ): Schedule {
+        val normalizedCode = ShiftType.fromCode(shiftCode)?.code ?: return schedule
+        if (days <= 0) return schedule
+
         val newExceptions = schedule.exceptions.toMutableMap()
-        for (i in 0 until days) {
-            newExceptions[DateUtils.formatDate(startDate.plusDays(i.toLong()))] = shiftCode
+        repeat(days) { index ->
+            newExceptions[DateUtils.formatDate(startDate.plusDays(index.toLong()))] = normalizedCode
         }
 
+        val newEnd = startDate.plusDays(days.toLong())
+        val nonOverlappingShifts = schedule.cycleShifts.filter { (rawStart, existingDays) ->
+            val existingStart = DateUtils.tryParseDate(rawStart) ?: return@filter false
+            val existingEnd = existingStart.plusDays(existingDays.toLong())
+            existingEnd <= startDate || newEnd <= existingStart
+        }
         val newShifts = if (shiftCycle) {
-            schedule.cycleShifts + (DateUtils.formatDate(startDate) to days)
+            nonOverlappingShifts.toMutableMap().apply {
+                put(DateUtils.formatDate(startDate), days)
+            }
         } else {
-            schedule.cycleShifts
+            nonOverlappingShifts
         }
 
         return schedule.copy(exceptions = newExceptions, cycleShifts = newShifts)

@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.data.local
+package com.shiftschedule.app.data.local
 
 import android.content.Context
 import androidx.room.Database
@@ -51,17 +51,7 @@ abstract class ShiftDatabase : RoomDatabase() {
                     "shift_schedule_database"
                 )
                 .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
-                .fallbackToDestructiveMigration()
-                .addCallback(object : Callback() {
-                    override fun onCreate(db: SupportSQLiteDatabase) {
-                        super.onCreate(db)
-                        CoroutineScope(Dispatchers.IO).launch {
-                            INSTANCE?.shiftDao()?.let { dao ->
-                                Template.getBuiltInTemplates().forEach { dao.insertTemplate(it) }
-                            }
-                        }
-                    }
-                })
+                .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance
                 instance

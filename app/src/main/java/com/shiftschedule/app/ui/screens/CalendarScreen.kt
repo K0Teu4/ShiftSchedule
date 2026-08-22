@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.screens
+package com.shiftschedule.app.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -89,6 +90,13 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
     val selectedSchedule by remember(schedules, selectedScheduleId) {
         derivedStateOf { schedules.find { it.id == selectedScheduleId } ?: schedules.firstOrNull() }
     }
+    LaunchedEffect(schedules, selectedScheduleId) {
+        if (schedules.isEmpty()) {
+            if (selectedScheduleId != null) viewModel.selectSchedule(null)
+        } else if (selectedScheduleId == null || schedules.none { it.id == selectedScheduleId }) {
+            viewModel.selectSchedule(schedules.first().id)
+        }
+    }
     if (!isLoaded) {
         CalendarSkeleton()
         return
@@ -125,6 +133,29 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                             }
                         }
                 ) {
+                    if (schedules.isEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(tr("no_schedules_yet"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    tr("create_first"),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                                TextButton(onClick = { showCreateModal = true }, modifier = Modifier.padding(top = 8.dp)) {
+                                    Text(tr("add_schedule"))
+                                }
+                            }
+                        }
+                        return@Scaffold
+                    }
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); viewModel.previousMonth() }) {
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = tr("prev_month"))
@@ -149,7 +180,12 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                         val todayShift = viewModel.getShiftForDate(schedule, LocalDate.now())
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Text(tr("today_label"), style = MaterialTheme.typography.titleMedium)
-                            Text(text = todayShift?.let { it.emoji + " " + it.displayName(lang) } ?: tr("no_shift"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = todayShift?.color ?: MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = todayShift?.let { (if (settings.showEmoji) it.emoji else it.displayName(lang).take(1)) + " " + it.displayName(lang) } ?: tr("no_shift"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = todayShift?.color ?: MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                         val stats = viewModel.getMonthStats(listOf(schedule.id), currentMonth)
                         Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
@@ -161,10 +197,18 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                                 EmojiStat("\uD83E\uDD12", stats["total_sick"] ?: 0)
                                 EmojiStat("\uD83C\uDF34", stats["total_vacation"] ?: 0)
                             }
-                            if ((selectedSchedule?.hourRate ?: 0) > 0) {
-                                val money = ((stats["total_day"] ?: 0) * (selectedSchedule?.dayHours ?: 8) + (stats["total_night"] ?: 0) * (selectedSchedule?.nightHours ?: 16)) * (selectedSchedule?.hourRate ?: 0)
-                                Text(tr("salary_line", money), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                            }
+                            val hours = stats["total_hours"] ?: 0
+                        val salary = stats["total_salary"] ?: 0
+                        if (hours > 0 || (selectedSchedule?.hourRate ?: 0) > 0) {
+                            val suffix = if (salary > 0) " · " + tr("salary_line", salary) else ""
+                            Text(
+                                tr("total_hours") + ": $hours" + suffix,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -258,6 +302,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
     editDay?.let { date ->
         EditDayModal(
             schedules = schedules,
+            selectedScheduleId = selectedScheduleId,
             date = date,
             currentShift = selectedSchedule?.let { viewModel.getShiftForDate(it, date) },
             onDismiss = { editDay = null },
@@ -275,10 +320,14 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
         EditScheduleModal(
             initial = null,
             templates = templates,
+            defaultHourRate = settings.hourRate,
+            defaultDayHours = settings.dayHours,
+            defaultNightHours = settings.nightHours,
             onDismiss = { showCreateModal = false },
             onSave = { schedule ->
-                viewModel.addSchedule(schedule)
-                viewModel.selectSchedule(viewModel.allSchedules.value.lastOrNull()?.id ?: schedule.id)
+                viewModel.addSchedule(schedule) { createdId ->
+                    viewModel.selectSchedule(createdId)
+                }
                 viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
                 showCreateModal = false
             }

@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.screens
+package com.shiftschedule.app.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +35,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -76,6 +79,29 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var rateText by remember { mutableStateOf(if (settings.hourRate == 0) "" else settings.hourRate.toString()) }
+    var dayHoursText by remember { mutableStateOf(settings.dayHours.toString()) }
+    var nightHoursText by remember { mutableStateOf(settings.nightHours.toString()) }
+    var salaryFieldFocused by remember { mutableStateOf(false) }
+
+    LaunchedEffect(settings.hourRate, settings.dayHours, settings.nightHours, salaryFieldFocused) {
+        if (!salaryFieldFocused) {
+            rateText = if (settings.hourRate == 0) "" else settings.hourRate.toString()
+            dayHoursText = settings.dayHours.toString()
+            nightHoursText = settings.nightHours.toString()
+        }
+    }
+
+    fun commitSalaryDefaults() {
+        val rate = rateText.filter(Char::isDigit).take(6).toIntOrNull() ?: 0
+        val day = dayHoursText.filter(Char::isDigit).take(2).toIntOrNull()?.coerceIn(1, 24) ?: settings.dayHours
+        val night = nightHoursText.filter(Char::isDigit).take(2).toIntOrNull()?.coerceIn(1, 24) ?: settings.nightHours
+        viewModel.updateSettings(settings.copy(hourRate = rate, dayHours = day, nightHours = night))
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { commitSalaryDefaults() }
+    }
 
     val exportedMsg = tr("exported")
     val exportErrMsg = tr("export_error")
@@ -206,19 +232,34 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                     Text(tr("salary_desc"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
-                            value = if (settings.hourRate == 0) "" else settings.hourRate.toString(),
-                            onValueChange = { v -> viewModel.updateSettings(settings.copy(hourRate = v.filter { it.isDigit() }.take(6).toIntOrNull() ?: 0)) },
-                            label = { Text(tr("rate_label")) }, singleLine = true, modifier = Modifier.weight(1f)
+                            value = rateText,
+                            onValueChange = { rateText = it.filter(Char::isDigit).take(6) },
+                            label = { Text(tr("rate_label")) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).onFocusChanged { state ->
+                                salaryFieldFocused = state.isFocused
+                                if (!state.isFocused) commitSalaryDefaults()
+                            }
                         )
                         OutlinedTextField(
-                            value = settings.dayHours.toString(),
-                            onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) viewModel.updateSettings(settings.copy(dayHours = n)) },
-                            label = { Text(tr("day_hours")) }, singleLine = true, modifier = Modifier.weight(1f)
+                            value = dayHoursText,
+                            onValueChange = { dayHoursText = it.filter(Char::isDigit).take(2) },
+                            label = { Text(tr("day_hours")) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).onFocusChanged { state ->
+                                salaryFieldFocused = state.isFocused
+                                if (!state.isFocused) commitSalaryDefaults()
+                            }
                         )
                         OutlinedTextField(
-                            value = settings.nightHours.toString(),
-                            onValueChange = { v -> val n = v.filter { it.isDigit() }.take(2).toIntOrNull(); if (n != null && n in 1..24) viewModel.updateSettings(settings.copy(nightHours = n)) },
-                            label = { Text(tr("night_hours")) }, singleLine = true, modifier = Modifier.weight(1f)
+                            value = nightHoursText,
+                            onValueChange = { nightHoursText = it.filter(Char::isDigit).take(2) },
+                            label = { Text(tr("night_hours")) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f).onFocusChanged { state ->
+                                salaryFieldFocused = state.isFocused
+                                if (!state.isFocused) commitSalaryDefaults()
+                            }
                         )
                     }
                 }
@@ -272,7 +313,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Версия 1.0 \u00B7 Сделано с ❤️",
+                text = tr("version_footer"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),

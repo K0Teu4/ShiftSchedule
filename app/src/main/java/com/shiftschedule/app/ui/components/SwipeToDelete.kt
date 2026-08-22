@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.shiftschedule.app.util.tr
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -51,12 +52,12 @@ fun SwipeToDelete(
             Spacer(modifier = Modifier.weight(1f))
             Icon(
                 Icons.Filled.Delete,
-                contentDescription = "Удалить",
+                contentDescription = tr("delete"),
                 tint = MaterialTheme.colorScheme.error
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                "Удалить",
+                tr("delete"),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.titleMedium
             )

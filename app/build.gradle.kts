@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
@@ -16,18 +16,20 @@ android {
         versionName = "1.0"
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file("../release.keystore")
-            storePassword = "shiftschedule2026"
-            keyAlias = "shiftschedule"
-            keyPassword = "shiftschedule2026"
-        }
-    }
-
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            val releaseStoreFile = providers.gradleProperty("RELEASE_STORE_FILE").orNull
+            val releaseStorePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
+            val releaseKeyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
+            val releaseKeyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
+            if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
+                signingConfig = signingConfigs.create("release") {
+                    storeFile = file(releaseStoreFile)
+                    storePassword = releaseStorePassword
+                    keyAlias = releaseKeyAlias
+                    keyPassword = releaseKeyPassword
+                }
+            }
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(

@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.screens
+package com.shiftschedule.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -119,7 +119,7 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                         val selected = schedule.id in selectedCompareIds
                         Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface).clickable { haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove); viewModel.toggleCompareSchedule(schedule.id) }.padding(horizontal = 14.dp, vertical = 8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(schedule.color))))
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }.getOrElse { MaterialTheme.colorScheme.primary }))
                                 Text(schedule.name, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 6.dp))
                             }
                         }
@@ -180,6 +180,8 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             StatRow(tr("total_holiday"), stats["total_holiday"] ?: 0)
                             StatRow(tr("total_sick"), stats["total_sick"] ?: 0)
                             StatRow(tr("total_vacation"), stats["total_vacation"] ?: 0)
+                            StatRow(tr("total_hours"), stats["total_hours"] ?: 0)
+                            if ((stats["total_salary"] ?: 0) > 0) StatRow(tr("estimated_salary"), stats["total_salary"] ?: 0)
                         } else {
                             StatRow(tr("shared_off") + " \u2726", stats["shared_off"] ?: 0)
                             StatRow(tr("total_day"), stats["total_day"] ?: 0)
@@ -187,7 +189,11 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             StatRow(tr("total_holiday"), stats["total_holiday"] ?: 0)
                             StatRow(tr("total_sick"), stats["total_sick"] ?: 0)
                             StatRow(tr("total_vacation"), stats["total_vacation"] ?: 0)
+                            StatRow(tr("total_hours"), stats["total_hours"] ?: 0)
+                            if ((stats["total_salary"] ?: 0) > 0) StatRow(tr("estimated_salary"), stats["total_salary"] ?: 0)
                             StatRow(tr("all_working"), stats["all_working"] ?: 0)
+                            StatRow(tr("total_hours"), stats["total_hours"] ?: 0)
+                            if ((stats["total_salary"] ?: 0) > 0) StatRow(tr("estimated_salary"), stats["total_salary"] ?: 0)
                             if (settings.rfHolidays) StatRow(tr("rf_holidays") + " 🎉", com.shiftschedule.app.util.RuHolidays.countInMonth(currentMonth))
                         }
                         Spacer(modifier = Modifier.height(8.dp))
@@ -262,7 +268,7 @@ private fun YearReport(viewModel: ShiftViewModel, year: Int, scheduleIds: List<I
             val s = viewModel.getYearStats(listOf(schedule.id), year)
             Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(schedule.color))))
+                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }.getOrElse { MaterialTheme.colorScheme.primary }))
                     Spacer(modifier = Modifier.size(8.dp))
                     Text(schedule.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                     Text("\u2600\uFE0F ${s["total_day"] ?: 0} \u00B7 \uD83C\uDF19 ${s["total_night"] ?: 0} \u00B7 \uD83C\uDFE0 ${s["total_off"] ?: 0} \u00B7 \uD83C\uDF89 ${s["total_holiday"] ?: 0}", style = MaterialTheme.typography.bodySmall)

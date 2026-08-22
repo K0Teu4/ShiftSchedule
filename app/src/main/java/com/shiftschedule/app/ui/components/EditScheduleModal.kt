@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.components
+package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,7 +45,7 @@ import com.shiftschedule.app.util.DateUtils
 import com.shiftschedule.app.util.tr
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,17 +53,20 @@ import java.time.format.DateTimeFormatter
 fun EditScheduleModal(
     initial: Schedule?,
     templates: List<Template>,
+    defaultHourRate: Int = 0,
+    defaultDayHours: Int = 8,
+    defaultNightHours: Int = 16,
     onDismiss: () -> Unit,
     onSave: (Schedule) -> Unit
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var color by remember { mutableStateOf(initial?.color ?: "#5856D6") }
     var templateId by remember { mutableStateOf(initial?.templateId) }
-    var startDate by remember { mutableStateOf(initial?.startDate?.let { DateUtils.parseDate(it) } ?: LocalDate.now()) }
+    var startDate by remember { mutableStateOf(initial?.startDate?.let { DateUtils.tryParseDate(it) } ?: LocalDate.now()) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var hourRate by remember { mutableStateOf(initial?.hourRate ?: 0) }
-    var dayHours by remember { mutableStateOf(initial?.dayHours ?: 8) }
-    var nightHours by remember { mutableStateOf(initial?.nightHours ?: 16) }
+    var hourRate by remember { mutableStateOf(initial?.hourRate ?: defaultHourRate.coerceIn(0, 1_000_000)) }
+    var dayHours by remember { mutableStateOf(initial?.dayHours ?: defaultDayHours.coerceIn(1, 24)) }
+    var nightHours by remember { mutableStateOf(initial?.nightHours ?: defaultNightHours.coerceIn(1, 24)) }
 
     val trimmed = name.trim()
     val canSave = trimmed.isNotBlank()
@@ -251,7 +254,7 @@ fun EditScheduleModal(
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            initialSelectedDateMillis = startDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
         )
 
         DatePickerDialog(
@@ -277,7 +280,7 @@ fun EditScheduleModal(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        startDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                        startDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
                 }) {

@@ -14,6 +14,10 @@ object DateUtils {
 
     fun parseDate(dateString: String): LocalDate = LocalDate.parse(dateString, dateFormatter)
 
+    fun tryParseDate(dateString: String): LocalDate? = runCatching {
+        LocalDate.parse(dateString, dateFormatter)
+    }.getOrNull()
+
     fun getDaysInMonth(yearMonth: YearMonth): List<LocalDate> {
         return (1..yearMonth.lengthOfMonth()).map { day -> yearMonth.atDay(day) }
     }

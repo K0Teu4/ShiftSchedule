@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.data.model
+package com.shiftschedule.app.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -31,7 +31,8 @@ class ExceptionsConverter {
     @TypeConverter
     fun toExceptions(json: String): Map<String, String> {
         val type = object : TypeToken<Map<String, String>>() {}.type
-        return gson.fromJson(json, type) ?: emptyMap()
+        return runCatching { gson.fromJson<Map<String, String>>(json, type) ?: emptyMap() }
+            .getOrDefault(emptyMap())
     }
 }
 
@@ -42,6 +43,7 @@ class CycleShiftsConverter {
     @TypeConverter
     fun toCycleShifts(json: String): Map<String, Int> {
         val type = object : TypeToken<Map<String, Int>>() {}.type
-        return gson.fromJson(json, type) ?: emptyMap()
+        return runCatching { gson.fromJson<Map<String, Int>>(json, type) ?: emptyMap() }
+            .getOrDefault(emptyMap())
     }
 }

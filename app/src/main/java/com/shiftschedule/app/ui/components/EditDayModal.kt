@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.components
+package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,13 +41,20 @@ import java.time.LocalDate
 @Composable
 fun EditDayModal(
     schedules: List<Schedule>,
+    selectedScheduleId: Int?,
     date: LocalDate,
     currentShift: ShiftType?,
     onDismiss: () -> Unit,
     onSave: (Schedule, ShiftType, String, Int, Boolean) -> Unit,
     onClear: (Schedule) -> Unit = {}
 ) {
-    var selectedScheduleIds by remember { mutableStateOf(schedules.map { it.id }.toSet()) }
+    var selectedScheduleIds by remember(selectedScheduleId, schedules) {
+        mutableStateOf(
+            selectedScheduleId?.takeIf { id -> schedules.any { it.id == id } }?.let { setOf(it) }
+                ?: schedules.firstOrNull()?.let { setOf(it.id) }
+                ?: emptySet()
+        )
+    }
     var selectedShiftType by remember { mutableStateOf(currentShift ?: ShiftType.DAY) }
     var applyRange by remember { mutableStateOf("this_day") }
     var days by remember { mutableStateOf(1) }
@@ -55,7 +62,7 @@ fun EditDayModal(
 
     val isPeriodType = selectedShiftType == ShiftType.SICK || selectedShiftType == ShiftType.VACATION
     val canApplyToRange = schedules.any { it.templateId != null }
-    val hasException = schedules.any { it.exceptions.containsKey(DateUtils.formatDate(date)) }
+    val hasException = schedules.any { it.id in selectedScheduleIds && it.exceptions.containsKey(DateUtils.formatDate(date)) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState())) {

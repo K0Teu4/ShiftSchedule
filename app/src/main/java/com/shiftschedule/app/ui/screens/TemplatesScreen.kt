@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.screens
+package com.shiftschedule.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -75,6 +75,7 @@ import kotlinx.coroutines.launch
 fun TemplatesScreen(viewModel: ShiftViewModel) {
     val templates by viewModel.allTemplates.collectAsState()
     val schedules by viewModel.allSchedules.collectAsState()
+    val settings by viewModel.settings.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -154,6 +155,14 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
             }
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (searchActive) {
+                    if (filteredSchedules.isNotEmpty()) item { SectionTitle(tr("my_schedules")) }
+                    if (filteredTemplates.any { it.isBuiltIn }) item { SectionTitle(tr("built_in"), topPadding = filteredSchedules.isNotEmpty()) }
+                    if (filteredTemplates.any { !it.isBuiltIn }) item { SectionTitle(tr("user_templates"), topPadding = true) }
+                    if (filteredSchedules.isEmpty() && filteredTemplates.isEmpty()) {
+                        item { EmptyCard(tr("search_no_results"), tr("search_try_again")) { viewModel.setSearchQuery("") } }
+                    }
+                }
                 if (!searchActive) {
                     item { SectionTitle(tr("my_schedules")) }
                 }
@@ -252,6 +261,9 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
         EditScheduleModal(
             initial = null,
             templates = templates,
+            defaultHourRate = settings.hourRate,
+            defaultDayHours = settings.dayHours,
+            defaultNightHours = settings.nightHours,
             onDismiss = { showCreateSchedule = false },
             onSave = { s ->
                 viewModel.addSchedule(s)
@@ -284,13 +296,13 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
                         scheduleToDelete = null
                         if (toDelete != null) {
                             scope.launch {
-                                viewModel.deleteSchedule(toDelete)
+                                viewModel.deleteScheduleNow(toDelete)
                                 val result = snackbarHostState.showSnackbar(
                                     String.format(deletedTemplate, toDelete.name),
                                     undoMsg
                                 )
                                 if (result == SnackbarResult.ActionPerformed) {
-                                    viewModel.addSchedule(toDelete)
+                                    viewModel.restoreSchedule(toDelete)
                                 }
                             }
                         }
@@ -319,7 +331,7 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
             initial = t,
             onDismiss = { templateToEdit = null },
             onSave = { updated ->
-                viewModel.updateTemplate(updated)
+                if (updated.id == 0) viewModel.addTemplate(updated) else viewModel.updateTemplate(updated)
                 templateToEdit = null
             }
         )
@@ -411,7 +423,10 @@ private fun ScheduleCard(
                 modifier = Modifier
                     .size(14.dp)
                     .clip(CircleShape)
-                    .background(Color(android.graphics.Color.parseColor(schedule.color)))
+                    .background(
+                        runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }
+                            .getOrElse { MaterialTheme.colorScheme.primary }
+                    )
             )
             Column(
                 modifier = Modifier
@@ -424,7 +439,8 @@ private fun ScheduleCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    (templateName ?: tr("manual")) + " · " + tr("from") + " " + com.shiftschedule.app.util.DateUtils.parseDate(schedule.startDate).format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")),
+                    (templateName ?: tr("manual")) + " · " + tr("from") + " " +
+                        (com.shiftschedule.app.util.DateUtils.tryParseDate(schedule.startDate)?.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")) ?: tr("invalid_date")),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.viewmodel
+package com.shiftschedule.app.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -7,6 +7,7 @@ import com.shiftschedule.app.data.local.SettingsDataStore
 import com.shiftschedule.app.data.local.ShiftDatabase
 import com.shiftschedule.app.data.model.AppSettings
 import com.shiftschedule.app.data.model.BackupData
+import com.shiftschedule.app.data.model.BackupValidator
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
@@ -14,8 +15,11 @@ import com.shiftschedule.app.data.repository.ShiftRepository
 import com.shiftschedule.app.util.DateUtils
 import com.shiftschedule.app.util.ListUtils
 import com.shiftschedule.app.util.PatternUtils
+import com.shiftschedule.app.domain.ShiftResolver
 import com.shiftschedule.app.util.StatsUtils
 import com.shiftschedule.app.widget.ShiftWidgetProvider
+import com.shiftschedule.app.notifications.NotificationHelper
+import com.shiftschedule.app.notifications.NotificationScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,9 +59,10 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             val templates = repository.allTemplates.first()
-            if (templates.none { it.isBuiltIn }) {
-                Template.getBuiltInTemplates().forEach { repository.insertTemplate(it) }
-            }
+            val existingBuiltInIds = templates.filter { it.isBuiltIn }.map { it.id }.toSet()
+            Template.getBuiltInTemplates()
+                .filter { it.id !in existingBuiltInIds }
+                .forEach { repository.insertTemplate(it) }
             settingsDataStore.settingsFlow.first()
             _isLoaded.value = true
         }
@@ -95,15 +100,40 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     fun nextYear() { _currentMonth.value = _currentMonth.value.plusYears(1) }
     fun previousYear() { _currentMonth.value = _currentMonth.value.minusYears(1) }
 
-    fun addSchedule(schedule: Schedule) {
+    fun addSchedule(schedule: Schedule, onCreated: (Int) -> Unit = {}) {
         viewModelScope.launch {
             try {
                 val cleanName = schedule.name.trim().replace(Regex("\\s+"), " ")
                 if (cleanName.isEmpty()) return@launch
                 val maxIndex = repository.getMaxScheduleSortIndex()
-                repository.insertSchedule(schedule.copy(name = cleanName, sortIndex = maxIndex + 1))
+                val insertedId = repository.insertSchedule(
+                    schedule.copy(id = 0, name = cleanName, sortIndex = maxIndex + 1)
+                ).toInt()
                 refreshWidget()
-            } catch (e: Exception) { e.printStackTrace() }
+                onCreated(insertedId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    suspend fun deleteScheduleNow(schedule: Schedule) {
+        repository.deleteSchedule(schedule)
+        refreshWidget()
+    }
+
+    fun restoreSchedule(schedule: Schedule, onRestored: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val maxIndex = repository.getMaxScheduleSortIndex()
+                val restoredId = repository.insertSchedule(
+                    schedule.copy(id = 0, sortIndex = maxIndex + 1)
+                ).toInt()
+                refreshWidget()
+                onRestored(restoredId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -138,7 +168,9 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteSchedule(schedule: Schedule) {
-        viewModelScope.launch { try { repository.deleteSchedule(schedule); refreshWidget() } catch (e: Exception) { e.printStackTrace() } }
+        viewModelScope.launch {
+            try { deleteScheduleNow(schedule) } catch (e: Exception) { e.printStackTrace() }
+        }
     }
 
     fun reorderSchedules(fromIndex: Int, toIndex: Int) {
@@ -164,10 +196,18 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateTemplate(template: Template) {
-        viewModelScope.launch { try { repository.updateTemplate(template) } catch (e: Exception) { e.printStackTrace() } }
+        if (template.isBuiltIn) return
+        viewModelScope.launch {
+            try {
+                repository.updateTemplate(template)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun deleteTemplate(template: Template) {
+        if (template.isBuiltIn) return
         viewModelScope.launch {
             try {
                 allSchedules.value.filter { it.templateId == template.id }.forEach { schedule -> repository.updateSchedule(schedule.copy(templateId = null)) }
@@ -205,7 +245,14 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val newExceptions = schedule.exceptions.toMutableMap()
                 newExceptions.remove(DateUtils.formatDate(date))
-                repository.updateSchedule(schedule.copy(exceptions = newExceptions))
+                val newCycleShifts = schedule.cycleShifts.filter { (rawStart, days) ->
+                    val cycleStart = DateUtils.tryParseDate(rawStart) ?: return@filter false
+                    val cycleEnd = cycleStart.plusDays(days.toLong())
+                    date.isBefore(cycleStart) || !date.isBefore(cycleEnd)
+                }
+                repository.updateSchedule(
+                    schedule.copy(exceptions = newExceptions, cycleShifts = newCycleShifts)
+                )
                 refreshWidget()
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -213,7 +260,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getShiftForDate(schedule: Schedule, date: LocalDate): ShiftType? {
         val template = schedule.templateId?.let { id -> allTemplates.value.firstOrNull { it.id == id } }
-        return PatternUtils.getShiftForDate(schedule, date, template)
+        return ShiftResolver.resolve(schedule, date, template)
     }
 
     fun getShiftsForDate(date: LocalDate): List<Pair<Schedule, ShiftType?>> {
@@ -229,25 +276,53 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateSettings(newSettings: AppSettings) {
-        viewModelScope.launch { try { settingsDataStore.updateSettings(newSettings) } catch (e: Exception) { e.printStackTrace() } }
+        viewModelScope.launch {
+            try {
+                val old = settings.value
+                settingsDataStore.updateSettings(newSettings)
+                if (!newSettings.notifications) {
+                    NotificationScheduler.cancel(getApplication())
+                    NotificationHelper.cancelSummaryNotification(getApplication())
+                } else if (!old.notifications || old.reminderTime != newSettings.reminderTime) {
+                    NotificationScheduler.scheduleNext(getApplication(), newSettings.reminderTime)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     suspend fun exportData(): String {
-        val data = BackupData(version = 1, schedules = repository.allSchedules.first(), templates = repository.allTemplates.first())
+        val data = BackupData(
+            version = BackupData.CURRENT_VERSION,
+            schedules = repository.allSchedules.first(),
+            templates = repository.allTemplates.first()
+        )
         return gson.toJson(data)
     }
 
     suspend fun importData(json: String): Boolean {
         return try {
-            val data = gson.fromJson(json, BackupData::class.java) ?: return false
-            repository.deleteAllSchedules()
-            repository.deleteAllTemplates()
-            data.schedules.forEach { repository.insertSchedule(it) }
-            data.templates.forEach { repository.insertTemplate(it) }
-            if (data.templates.none { it.isBuiltIn }) Template.getBuiltInTemplates().forEach { repository.insertTemplate(it) }
+            val root = com.google.gson.JsonParser.parseString(json).asJsonObject
+            if (!root.has("version")) root.addProperty("version", 1)
+            val data = gson.fromJson(root, BackupData::class.java) ?: return false
+            if (BackupValidator.validate(data) != null) return false
+
+            // Built-in templates are application-owned and may be absent from older backups.
+            val templatesById = data.templates.associateBy { it.id }.toMutableMap()
+            Template.getBuiltInTemplates().forEach { builtIn ->
+                if (templatesById[builtIn.id]?.isBuiltIn != true) {
+                    templatesById[builtIn.id] = builtIn
+                }
+            }
+            val templates = templatesById.values.sortedWith(compareByDescending<Template> { it.isBuiltIn }.thenBy { it.sortIndex }.thenBy { it.name })
+
+            repository.replaceAllData(data.schedules, templates)
             refreshWidget()
             true
-        } catch (e: Exception) { false }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     fun getMonthStats(scheduleIds: List<Int>, yearMonth: YearMonth): Map<String, Int> {

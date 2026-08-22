@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Transaction
 import androidx.room.Delete
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.Template
@@ -53,4 +54,12 @@ interface ShiftDao {
 
     @Query("DELETE FROM templates")
     suspend fun deleteAllTemplates()
+
+    @Transaction
+    suspend fun replaceAllData(schedules: List<Schedule>, templates: List<Template>) {
+        deleteAllSchedules()
+        deleteAllTemplates()
+        schedules.forEach { insertSchedule(it) }
+        templates.forEach { insertTemplate(it) }
+    }
 }
