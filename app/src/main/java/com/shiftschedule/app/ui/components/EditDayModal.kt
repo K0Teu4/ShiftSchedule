@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.components
+﻿package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,7 +57,7 @@ fun EditDayModal(schedules: List<Schedule>, selectedScheduleId: Int?, date: Loca
             }
             Spacer(Modifier.padding(top = 12.dp))
             Text("Смена", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            ShiftType.values().chunked(2).forEach { row -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { type -> Surface(onClick = { shift = type }, shape = RoundedCornerShape(16.dp), color = if (type == shift) type.color.copy(alpha = .18f) else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.weight(1f)) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { Text(type.emoji); Text(type.displayName(LocalLang.current), Modifier.padding(start = 7.dp), fontWeight = if (type == shift) FontWeight.Bold else FontWeight.Medium) } } } } }
+            ShiftType.values().toList().chunked(2).forEach { row -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { type -> Surface(onClick = { shift = type }, shape = RoundedCornerShape(16.dp), color = if (type == shift) type.color.copy(alpha = .18f) else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.weight(1f)) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { Text(type.emoji); Text(type.displayName(LocalLang.current), Modifier.padding(start = 7.dp), fontWeight = if (type == shift) FontWeight.Bold else FontWeight.Medium) } } } } }
             Spacer(Modifier.padding(top = 14.dp))
             if (period) {
                 Text("Продолжительность", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)

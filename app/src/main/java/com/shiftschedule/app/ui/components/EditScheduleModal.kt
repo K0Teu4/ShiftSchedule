@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.components
+﻿package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
@@ -75,7 +77,7 @@ fun EditScheduleModal(initial: Schedule?, templates: List<Template>, defaultHour
             Spacer(Modifier.size(18.dp))
             Text("Ритм смен", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text("Выберите готовый цикл или оставьте ручной режим.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp, bottom = 8.dp))
-            Surface(onClick = { templateId = null }, shape = RoundedCornerShape(16.dp), color = if (templateId == null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) { Text("✦", color = MaterialTheme.colorScheme.primary, fontSize = 18.dp); Column(Modifier.padding(start = 10.dp)) { Text("Без шаблона", fontWeight = FontWeight.Bold); Text("Смены меняются вручную", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } } }
+            Surface(onClick = { templateId = null }, shape = RoundedCornerShape(16.dp), color = if (templateId == null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) { Text("✦", color = MaterialTheme.colorScheme.primary, fontSize = 18.sp); Column(Modifier.padding(start = 10.dp)) { Text("Без шаблона", fontWeight = FontWeight.Bold); Text("Смены меняются вручную", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } } }
             templates.forEach { template ->
                 val active = template.id == templateId
                 Surface(onClick = { templateId = template.id }, shape = RoundedCornerShape(16.dp), color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {

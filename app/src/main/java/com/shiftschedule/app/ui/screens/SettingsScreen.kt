@@ -1,4 +1,4 @@
-package com.shiftschedule.app.ui.screens
+﻿package com.shiftschedule.app.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,7 +58,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import com.shiftschedule.app.ui.components.AppHeader
 import com.shiftschedule.app.ui.components.SectionLabel
@@ -108,7 +107,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 
             SettingGroup("Внешний вид", Icons.Filled.Palette) {
                 SectionLabel("Тема")
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 10.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     themePreviews.forEach { (id, colors) -> ThemeChip(id, colors.first, colors.second, settings.theme) { viewModel.updateSettings(settings.copy(theme = it)) } }
                 }
                 Spacer(Modifier.size(14.dp))
@@ -181,7 +180,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
 
 @Composable private fun ChoiceRow(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Column(Modifier.weight(1f).padding(start = 10.dp)) { Text(title, fontWeight = FontWeight.SemiBold); Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) } Text("›", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Column(Modifier.weight(1f).padding(start = 10.dp)) { Text(title, fontWeight = FontWeight.SemiBold); Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }; Text("›", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
