@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.util
+package com.shiftschedule.app.util
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals

@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.data.local
+package com.shiftschedule.app.data.local
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey

@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.util
+package com.shiftschedule.app.util
 
 import java.time.LocalDate
 import java.time.YearMonth

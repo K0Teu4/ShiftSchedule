@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.screens
+package com.shiftschedule.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.Schedule
@@ -55,8 +58,9 @@ import com.shiftschedule.app.ui.components.EditScheduleModal
 import com.shiftschedule.app.ui.components.EmptyState
 import com.shiftschedule.app.ui.components.SectionLabel
 import com.shiftschedule.app.ui.components.ShiftHeroCard
-import com.shiftschedule.app.ui.components.StatPill
+import com.shiftschedule.app.ui.components.ShiftStatPill
 import com.shiftschedule.app.ui.components.SurfaceCard
+import com.shiftschedule.app.ui.components.TemplateEditorModal
 import com.shiftschedule.app.ui.components.WeekHeader
 import com.shiftschedule.app.ui.components.OnboardingScreen
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
@@ -78,6 +82,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
     val lang = LocalLang.current
 
     var showCreate by remember { mutableStateOf(false) }
+    var showCreateTemplate by remember { mutableStateOf(false) }
     var showPicker by remember { mutableStateOf(false) }
     var editDay by remember { mutableStateOf<LocalDate?>(null) }
     var whoWhere by remember { mutableStateOf<LocalDate?>(null) }
@@ -93,11 +98,11 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
     if (!settings.hasCompletedOnboarding && schedules.isEmpty()) {
         OnboardingScreen(onCreateClick = { showCreate = true })
         if (showCreate) {
-            EditScheduleModal(null, templates, settings.hourRate, settings.dayHours, settings.nightHours, { showCreate = false }) { schedule ->
+            EditScheduleModal(null, templates, onDismiss = { showCreate = false }, onSave = { schedule ->
                 viewModel.addSchedule(schedule) { viewModel.selectSchedule(it) }
                 viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
                 showCreate = false
-            }
+            }, onCreateTemplate = { showCreate = false; showCreateTemplate = true }, showEmoji = settings.showEmoji)
         }
         return
     }
@@ -115,9 +120,15 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                     title = "ShiftWeave",
                     subtitle = DateUtils.monthTitle(currentMonth, monthLocale()),
                     action = {
-                        Surface(onClick = { showPicker = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        Surface(onClick = { showPicker = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.widthIn(max = 150.dp)) {
                             Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(selected?.name ?: tr("schedule_label"), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Text(
+                                    selected?.name ?: tr("schedule_label"),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                                 Icon(Icons.Filled.ExpandMore, null, modifier = Modifier.padding(start = 2.dp))
                             }
                         }
@@ -133,29 +144,26 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                         dateLabel = "Сегодня · ${today.dayOfMonth}.${today.monthValue}",
                         shift = todayShift,
                         secondaryLabel = next?.let { "Следующая · ${it.first.dayOfMonth}.${it.first.monthValue} · ${it.second?.displayName(lang)}" } ?: "Следующая смена не найдена",
-                        onToday = { viewModel.goToday() }
+                        showEmoji = settings.showEmoji
                     )
                 }
                 item {
                     val stats = viewModel.getMonthStats(listOf(selected!!.id), currentMonth)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = spacedBy(8.dp)) {
-                        StatPill("☀️", (stats["total_day"] ?: 0).toString(), "День", Modifier.weight(1f))
-                        StatPill("🌙", (stats["total_night"] ?: 0).toString(), "Ночь", Modifier.weight(1f))
-                        StatPill("🏠", (stats["total_off"] ?: 0).toString(), "Выход", Modifier.weight(1f))
+                        ShiftStatPill(ShiftType.DAY, (stats["total_day"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
+                        ShiftStatPill(ShiftType.NIGHT, (stats["total_night"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
+                        ShiftStatPill(ShiftType.OFF, (stats["total_off"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
                     }
                 }
                 item {
                     val stats = viewModel.getMonthStats(listOf(selected!!.id), currentMonth)
                     SurfaceCard {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Итоги месяца", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${stats["total_hours"] ?: 0} ч", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                                Text("${(stats["total_day"] ?: 0) + (stats["total_night"] ?: 0)} рабочих смен", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                             }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("Заработок", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(if ((stats["total_salary"] ?: 0) > 0) "${stats["total_salary"]} ₽" else "—", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            }
+                            Text("${stats["total_off"] ?: 0} выходных", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -166,10 +174,12 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { viewModel.previousMonth() }) { Icon(Icons.Filled.ChevronLeft, tr("prev_month")) }
                     Text(DateUtils.monthTitle(currentMonth, monthLocale()), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    Surface(onClick = { viewModel.goToday() }, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Today, null, modifier = Modifier.size(16.dp))
-                            Text("Сегодня", modifier = Modifier.padding(start = 5.dp), style = MaterialTheme.typography.labelMedium)
+                    IconButton(
+                        onClick = { viewModel.goToday() },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                            Icon(Icons.Filled.Today, "Сегодня", modifier = Modifier.padding(9.dp))
                         }
                     }
                     IconButton(onClick = { viewModel.nextMonth() }) { Icon(Icons.Filled.ChevronRight, tr("next_month")) }
@@ -180,7 +190,22 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                 val days = DateUtils.getDaysInMonth(currentMonth)
                 val offset = DateUtils.getFirstDayOffset(currentMonth, settings.weekStart)
                 val cells = buildList<LocalDate?> { repeat(offset) { add(null) }; addAll(days); while (size % 7 != 0) add(null) }
-                Column(verticalArrangement = spacedBy(6.dp)) {
+                Column(
+                    modifier = Modifier.pointerInput(currentMonth) {
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDrag = 0f },
+                            onHorizontalDrag = { change, amount -> change.consume(); totalDrag += amount },
+                            onDragEnd = {
+                                when {
+                                    totalDrag < -80f -> viewModel.nextMonth()
+                                    totalDrag > 80f -> viewModel.previousMonth()
+                                }
+                            }
+                        )
+                    },
+                    verticalArrangement = spacedBy(6.dp)
+                ) {
                     cells.chunked(7).forEach { week ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = spacedBy(6.dp)) {
                             week.forEach { date ->
@@ -200,18 +225,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                     }
                 }
             }
-            item {
-                SurfaceCard {
-                    Column(Modifier.padding(16.dp)) {
-                        SectionLabel("Быстрые действия")
-                        Spacer(Modifier.height(8.dp))
-                        Row(horizontalArrangement = spacedBy(8.dp)) {
-                            Button(onClick = { editDay = LocalDate.now() }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp)) { Text("Сегодня") }
-                            TextButton(onClick = { showPicker = true }, modifier = Modifier.weight(1f)) { Text("Сменить график") }
-                        }
-                    }
-                }
-            }
+            item { ShiftLegend(showEmoji = settings.showEmoji) }
             item { Spacer(Modifier.height(84.dp)) }
         }
     }
@@ -253,10 +267,13 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
         }
     }
     if (showCreate) {
-        EditScheduleModal(null, templates, settings.hourRate, settings.dayHours, settings.nightHours, { showCreate = false }) { schedule ->
+        EditScheduleModal(null, templates, onDismiss = { showCreate = false }, onSave = { schedule ->
             viewModel.addSchedule(schedule) { viewModel.selectSchedule(it) }
             viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
             showCreate = false
-        }
+        }, onCreateTemplate = { showCreate = false; showCreateTemplate = true }, showEmoji = settings.showEmoji)
+    }
+    if (showCreateTemplate) {
+        TemplateEditorModal(null, onDismiss = { showCreateTemplate = false }, onSave = { viewModel.addTemplate(it); showCreateTemplate = false; showCreate = true })
     }
 }

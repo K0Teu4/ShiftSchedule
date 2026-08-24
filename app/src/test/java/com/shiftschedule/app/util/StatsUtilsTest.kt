@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.util
+package com.shiftschedule.app.util
 
 import com.shiftschedule.app.data.model.Schedule
 import org.junit.Assert.assertEquals
@@ -29,6 +29,23 @@ class StatsUtilsTest {
         val b = manual(2, mapOf("2026-08-10" to "O"))
         assertEquals(0, StatsUtils.monthStats(listOf(a), emptyMap(), listOf(1), YearMonth.of(2026, 8))["shared_off"])
         assertEquals(1, StatsUtils.monthStats(listOf(a, b), emptyMap(), listOf(1, 2), YearMonth.of(2026, 8))["shared_off"])
+    }
+
+    @Test
+    fun commonWorkingRequiresSameShift() {
+        val day = manual(1, mapOf("2026-08-10" to "D"))
+        val day2 = manual(2, mapOf("2026-08-10" to "D"))
+        val night = manual(3, mapOf("2026-08-10" to "N"))
+
+        val sameDay = StatsUtils.monthStats(listOf(day, day2), emptyMap(), listOf(1, 2), YearMonth.of(2026, 8))
+        assertEquals(1, sameDay["shared_day"])
+        assertEquals(0, sameDay["shared_night"])
+        assertEquals(1, sameDay["all_working"])
+
+        val mixed = StatsUtils.monthStats(listOf(day, night), emptyMap(), listOf(1, 3), YearMonth.of(2026, 8))
+        assertEquals(0, mixed["shared_day"])
+        assertEquals(0, mixed["shared_night"])
+        assertEquals(0, mixed["all_working"])
     }
 
     @Test

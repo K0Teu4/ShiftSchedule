@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.components
+package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

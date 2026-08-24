@@ -43,12 +43,29 @@ fun AppHeader(
     modifier: Modifier = Modifier,
     action: (@Composable RowScope.() -> Unit)? = null
 ) {
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    // A vertical header is deliberately used when an action exists. This prevents
+    // long Russian titles/subtitles from colliding with the schedule selector on
+    // small screens.
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.weight(1f),
+                maxLines = 1
+            )
+            if (action != null) action.invoke(this)
         }
-        action?.invoke(this)
+        subtitle?.let {
+            Spacer(Modifier.height(3.dp))
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2
+            )
+        }
     }
 }
 
@@ -78,7 +95,7 @@ fun ShiftHeroCard(
     dateLabel: String,
     shift: ShiftType?,
     secondaryLabel: String,
-    onToday: (() -> Unit)? = null,
+    showEmoji: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val accent = shift?.color ?: MaterialTheme.colorScheme.primary
@@ -99,8 +116,10 @@ fun ShiftHeroCard(
                     Text(dateLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(3.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(shift?.emoji ?: "—", fontSize = 28.sp)
-                        Spacer(Modifier.width(10.dp))
+                        if (showEmoji) {
+                            Text(shift?.emoji ?: "—", fontSize = 28.sp)
+                            Spacer(Modifier.width(10.dp))
+                        }
                         Text(
                             shift?.displayName ?: "Нет смены",
                             style = MaterialTheme.typography.headlineMedium,
@@ -109,15 +128,12 @@ fun ShiftHeroCard(
                         )
                     }
                 }
-                if (onToday != null) {
-                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f), onClick = onToday) {
-                        Text("Сегодня", modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    }
-                }
+                // Navigation to today is kept in the month toolbar to avoid duplicate controls.
+
             }
             Spacer(Modifier.height(18.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(secondaryLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                Text(secondaryLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 if (shift != null) {
                     Icon(Icons.Filled.ArrowForward, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -127,16 +143,55 @@ fun ShiftHeroCard(
 }
 
 @Composable
-fun StatPill(icon: String, value: String, label: String, modifier: Modifier = Modifier) {
+fun ShiftStatPill(shift: ShiftType, value: String, showEmoji: Boolean, modifier: Modifier = Modifier, label: String = shift.displayName) {
     Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 16.sp)
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (showEmoji) Text(shift.emoji, fontSize = 16.sp)
+            else Box(Modifier.size(10.dp).clip(CircleShape).background(shift.color))
             Spacer(Modifier.width(7.dp))
             Column {
                 Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
-                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
+    }
+}
+
+@Composable
+fun ShiftLegend(showEmoji: Boolean = true, modifier: Modifier = Modifier) {
+    SurfaceCard(modifier) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Обозначения", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(10.dp))
+            // Two columns are more stable on narrow phones than the old three-column
+            // grid, where long labels could overlap or become clipped.
+            val types = ShiftType.values().toList()
+            types.chunked(2).forEachIndexed { index, row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { type -> LegendItem(type, showEmoji, Modifier.weight(1f)) }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
+                if (index < (types.size + 1) / 2 - 1) Spacer(Modifier.height(9.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegendItem(type: ShiftType, showEmoji: Boolean, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        if (showEmoji) {
+            Text(type.emoji, fontSize = 14.sp)
+        } else {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(type.color))
+        }
+        Text(
+            type.displayName,
+            Modifier.padding(start = 7.dp),
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 

@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.data.model
+package com.shiftschedule.app.data.model
 
 data class AppSettings(
     val notifications: Boolean = true,

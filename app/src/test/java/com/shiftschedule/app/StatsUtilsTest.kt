@@ -21,7 +21,6 @@ class StatsUtilsTest {
         assertEquals(16, stats["total_day"])
         assertEquals(15, stats["total_off"])
         assertEquals(0, stats["total_night"])
-        assertEquals(128, stats["total_hours"])
     }
 
     @Test

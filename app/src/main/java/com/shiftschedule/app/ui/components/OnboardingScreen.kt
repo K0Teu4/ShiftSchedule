@@ -10,9 +10,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.verticalScroll
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,44 +31,195 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shiftschedule.app.ui.theme.SharedDayWork
+import com.shiftschedule.app.ui.theme.SharedNightWork
 
 @Composable
 fun OnboardingScreen(onCreateClick: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 28.dp), verticalArrangement = Arrangement.SpaceBetween) {
-        Column {
+    val scroll = rememberScrollState()
+
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(scroll)
+                .padding(horizontal = 20.dp, vertical = 24.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.primary) { Text("SW", color = MaterialTheme.colorScheme.onPrimary, fontSize = 22.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 15.dp, vertical = 12.dp)) }
-                Column(Modifier.padding(start = 12.dp)) { Text("ShiftWeave", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold); Text("Ваш график. Без хаоса.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primary
+                ) {
+                    Text(
+                        "SW",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp)
+                    )
+                }
+                Column(Modifier.padding(start = 11.dp)) {
+                    Text("ShiftWeave", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                    Text("График смен без лишних расчётов", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-            Spacer(Modifier.size(36.dp))
-            Text("Сразу видно,\nкогда работать.", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+
+            Spacer(Modifier.size(28.dp))
+            Text(
+                "Смены —\nна одном экране.",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold
+            )
             Spacer(Modifier.size(10.dp))
-            Text("Создайте один или несколько графиков, задайте цикл и больше не считайте смены вручную.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.size(24.dp))
+            Text(
+                "Создайте график один раз. ShiftWeave покажет смены в календаре, повторит ваш цикл и поможет сравнить несколько графиков.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.size(20.dp))
             PreviewCalendar()
-            Spacer(Modifier.size(24.dp))
-            FeatureRow("01", "Календарь", "Сегодня, следующая смена и весь месяц на одном экране")
-            FeatureRow("02", "Сравнение", "Общие выходные для семьи, пары или команды")
-            FeatureRow("03", "Автоматика", "Напоминания, статистика, зарплата и резервные копии")
+
+            Spacer(Modifier.size(20.dp))
+            SectionFeature(
+                icon = Icons.Filled.CalendarMonth,
+                title = "Календарь",
+                description = "День, ночь и выходной сразу видны по цвету. Нажмите на дату, чтобы изменить смену."
+            )
+            SectionFeature(
+                icon = Icons.Filled.CompareArrows,
+                title = "Сравнение",
+                description = "Сверяйте несколько графиков и находите совпадающие дневные, ночные смены и выходные."
+            )
+            SectionFeature(
+                icon = Icons.Filled.NotificationsNone,
+                title = "Напоминания",
+                description = "Получайте уведомление о следующей смене в выбранное время."
+            )
+
+            Spacer(Modifier.size(8.dp))
         }
-        Column {
-            Button(onClick = onCreateClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) { Text("Создать первый график", modifier = Modifier.padding(vertical = 5.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            Text("Данные остаются на вашем устройстве", modifier = Modifier.fillMaxWidth().padding(top = 12.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 2.dp,
+            shadowElevation = 0.dp
+        ) {
+            Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+                Button(
+                    onClick = onCreateClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(17.dp)
+                ) {
+                    Text(
+                        "Создать первый график",
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    "Данные хранятся на вашем устройстве",
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
 
-@Composable private fun PreviewCalendar() {
-    val types = listOf(Color(0xFF34C759), Color(0xFF5856D6), Color(0xFF5856D6), Color(0xFFFF9500), Color(0xFFFF9500), Color(0xFF34C759), Color(0xFF34C759), Color(0xFF5856D6), Color(0xFFFF9500), Color(0xFF34C759), Color(0xFF34C759), Color(0xFF5856D6))
-    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-        Column(Modifier.padding(18.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Август", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f)); Text("2 / 2", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) }
+@Composable
+private fun PreviewCalendar() {
+    val cells = listOf(
+        Pair("1", Color(0xFF34C759)), Pair("2", Color(0xFF34C759)),
+        Pair("3", Color(0xFF8B82FF)), Pair("4", Color(0xFF8B82FF)),
+        Pair("5", MaterialTheme.colorScheme.surfaceVariant), Pair("6", MaterialTheme.colorScheme.surfaceVariant),
+        Pair("7", Color(0xFF34C759)), Pair("8", Color(0xFF8B82FF)),
+        Pair("9", MaterialTheme.colorScheme.surfaceVariant), Pair("10", Color(0xFF34C759)),
+        Pair("11", Color(0xFF8B82FF)), Pair("12", MaterialTheme.colorScheme.surfaceVariant)
+    )
+
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Август 2026", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text("Ваш текущий цикл", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text("2–2–2", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
             Spacer(Modifier.size(12.dp))
-            types.chunked(6).forEach { row -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { color -> Box(Modifier.weight(1f).size(38.dp).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = .18f)), contentAlignment = Alignment.Center) { Box(Modifier.size(8.dp).clip(CircleShape).background(color)) } } } }
+            cells.chunked(6).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    row.forEach { (day, color) ->
+                        val isOff = color == MaterialTheme.colorScheme.surfaceVariant
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(color.copy(alpha = if (isOff) 0.45f else 0.16f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(day, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+                Spacer(Modifier.size(7.dp))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LegendDot(SharedDayWork, "День")
+                LegendDot(SharedNightWork, "Ночь")
+                LegendDot(MaterialTheme.colorScheme.outline, "Выходной")
+            }
         }
     }
 }
 
-@Composable private fun FeatureRow(number: String, title: String, description: String) { Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.Top) { Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .15f)) { Text(number, modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.labelMedium) }; Column(Modifier.padding(start = 12.dp)) { Text(title, fontWeight = FontWeight.Bold); Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp)) } } }
+@Composable
+private fun LegendDot(color: Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        Text(text, Modifier.padding(start = 5.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+    }
+}
+
+@Composable
+private fun SectionFeature(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 7.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(21.dp))
+        }
+        Column(Modifier.padding(start = 12.dp)) {
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+    }
+}

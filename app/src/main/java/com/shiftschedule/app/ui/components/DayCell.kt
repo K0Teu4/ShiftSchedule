@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.ui.components
+package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -67,7 +67,11 @@ fun DayCell(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(day.toString(), style = MaterialTheme.typography.labelLarge, fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium, color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = .35f))
             if (shiftType != null || isHoliday) {
-                Text(if (showEmoji && shiftType != null) shiftType.emoji else if (isHoliday) "•" else "", fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
+                if (showEmoji && shiftType != null) {
+                    Text(shiftType.emoji, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
+                } else {
+                    Box(Modifier.padding(top = 5.dp).size(8.dp).background(shiftType?.color ?: Color(0xFFFF2D55), RoundedCornerShape(50)))
+                }
             }
         }
     }

@@ -1,5 +1,10 @@
-﻿package com.shiftschedule.app.ui.screens
+package com.shiftschedule.app.ui.screens
 
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.core.app.NotificationManagerCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -67,11 +72,9 @@ import com.shiftschedule.app.util.tr
 import kotlinx.coroutines.launch
 
 private val themePreviews = listOf(
-    "dark" to (Color(0xFF111118) to Color(0xFF6C63FF)), "light" to (Color(0xFFF7F7FB) to Color(0xFF5A55D6)),
-    "sepia" to (Color(0xFF33291D) to Color(0xFFD9A05B)), "midnight" to (Color(0xFF05070B) to Color(0xFF4DD9FF)),
-    "ocean" to (Color(0xFF08343D) to Color(0xFF27C7D9)), "forest" to (Color(0xFF102019) to Color(0xFF7BC46A)),
-    "berry" to (Color(0xFF241226) to Color(0xFFD985C7)), "sand" to (Color(0xFFFFF6E9) to Color(0xFFB26B1F)),
-    "plum" to (Color(0xFF2A1439) to Color(0xFFB388FF)), "graphite" to (Color(0xFF1A1C20) to Color(0xFFC9CCD3)),
+    "dark" to (Color(0xFF111118) to Color(0xFF6C63FF)),
+    "light" to (Color(0xFFF7F7FB) to Color(0xFF5A55D6)),
+    "sepia" to (Color(0xFF33291D) to Color(0xFFD9A05B)),
     "dynamic" to (Color(0xFFEADDFF) to Color(0xFF6750A4))
 )
 
@@ -82,19 +85,15 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var timeDialog by remember { mutableStateOf(false) }
-    var rate by remember { mutableStateOf(settings.hourRate.takeIf { it > 0 }?.toString() ?: "") }
-    var dayHours by remember { mutableStateOf(settings.dayHours.toString()) }
-    var nightHours by remember { mutableStateOf(settings.nightHours.toString()) }
-    var focused by remember { mutableStateOf(false) }
-
-    fun commitNumbers() {
-        val newRate = rate.filter(Char::isDigit).toIntOrNull()?.coerceIn(0, 1_000_000) ?: 0
-        val newDay = dayHours.filter(Char::isDigit).toIntOrNull()?.coerceIn(1, 24) ?: settings.dayHours
-        val newNight = nightHours.filter(Char::isDigit).toIntOrNull()?.coerceIn(1, 24) ?: settings.nightHours
-        viewModel.updateSettings(settings.copy(hourRate = newRate, dayHours = newDay, nightHours = newNight))
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.updateSettings(settings.copy(notifications = true))
+        } else {
+            scope.launch { snackbar.showSnackbar("Разрешение на уведомления не выдано") }
+        }
     }
-    LaunchedEffect(settings.hourRate, settings.dayHours, settings.nightHours, focused) { if (!focused) { rate = if (settings.hourRate == 0) "" else settings.hourRate.toString(); dayHours = settings.dayHours.toString(); nightHours = settings.nightHours.toString() } }
-    DisposableEffect(Unit) { onDispose { commitNumbers() } }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let { scope.launch { runCatching { val json = viewModel.exportData(); context.contentResolver.openOutputStream(it)?.use { out -> out.write(json.toByteArray()) }; snackbar.showSnackbar("Резервная копия сохранена") }.onFailure { snackbar.showSnackbar("Не удалось экспортировать данные") } } } }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { scope.launch { runCatching { val json = context.contentResolver.openInputStream(it)?.use { input -> input.readBytes().toString(Charsets.UTF_8) } ?: error("empty"); if (viewModel.importData(json)) snackbar.showSnackbar("Данные восстановлены") else snackbar.showSnackbar("Файл не прошёл проверку") }.onFailure { snackbar.showSnackbar("Не удалось импортировать данные") } } } }
@@ -119,19 +118,35 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
             }
 
             SettingGroup("Уведомления", Icons.Filled.NotificationsNone) {
-                SwitchRow("Напоминания", "Показывать ближайшую смену каждый день", settings.notifications, Icons.Filled.NotificationsNone) { viewModel.updateSettings(settings.copy(notifications = it)) }
-                if (settings.notifications) ChoiceRow("Время", settings.reminderTime, Icons.Filled.Schedule) { timeDialog = true }
+                val systemNotificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+                SwitchRow("Напоминания", "Показывать ближайшую смену каждый день", settings.notifications, Icons.Filled.NotificationsNone) { enabled ->
+                    if (!enabled) {
+                        viewModel.updateSettings(settings.copy(notifications = false))
+                    } else if (Build.VERSION.SDK_INT >= 33 && !NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        viewModel.updateSettings(settings.copy(notifications = true))
+                    }
+                }
+                if (settings.notifications) {
+                    ChoiceRow("Время", settings.reminderTime, Icons.Filled.Schedule) { timeDialog = true }
+                    if (!systemNotificationsEnabled) {
+                        Text("Android заблокировал уведомления для приложения.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 6.dp))
+                        OutlinedButton(
+                            onClick = { context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply { putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName) }) },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            shape = RoundedCornerShape(15.dp)
+                        ) { Text("Открыть настройки уведомлений") }
+                    }
+                }
             }
 
-            SettingGroup("Расчёты", Icons.Filled.SettingsSuggest) {
+                    SettingGroup("Смены и цвета", Icons.Filled.Palette) {
+                Text("Цвета сохраняют смысл даже без emoji.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.size(8.dp))
+                com.shiftschedule.app.ui.components.ShiftLegend(showEmoji = false)
+                Spacer(Modifier.size(8.dp))
                 SwitchRow("Праздники РФ", "Подсвечивать государственные праздники в календаре", settings.rfHolidays, Icons.Filled.CalendarToday) { viewModel.updateSettings(settings.copy(rfHolidays = it)) }
-                Text("Значения по умолчанию для новых графиков", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(rate, { rate = it.filter(Char::isDigit).take(7) }, label = { Text("₽/час") }, modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused }, singleLine = true, shape = RoundedCornerShape(16.dp))
-                    OutlinedTextField(dayHours, { dayHours = it.filter(Char::isDigit).take(2) }, label = { Text("День, ч") }, modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused }, singleLine = true, shape = RoundedCornerShape(16.dp))
-                    OutlinedTextField(nightHours, { nightHours = it.filter(Char::isDigit).take(2) }, label = { Text("Ночь, ч") }, modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused }, singleLine = true, shape = RoundedCornerShape(16.dp))
-                }
-                Button(onClick = { commitNumbers() }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), shape = RoundedCornerShape(15.dp)) { Text("Сохранить расчёты") }
             }
 
             SettingGroup("Данные", Icons.Filled.Backup) {

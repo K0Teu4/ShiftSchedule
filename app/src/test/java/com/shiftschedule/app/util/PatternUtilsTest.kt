@@ -1,4 +1,4 @@
-﻿package com.shiftschedule.app.util
+package com.shiftschedule.app.util
 
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.Template

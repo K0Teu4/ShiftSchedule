@@ -283,7 +283,8 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
                 if (!newSettings.notifications) {
                     NotificationScheduler.cancel(getApplication())
                     NotificationHelper.cancelSummaryNotification(getApplication())
-                } else if (!old.notifications || old.reminderTime != newSettings.reminderTime) {
+                } else if (newSettings.notifications) {
+                    // Re-schedule after every settings change; this also repairs a stale worker.
                     NotificationScheduler.scheduleNext(getApplication(), newSettings.reminderTime)
                 }
             } catch (e: Exception) {
