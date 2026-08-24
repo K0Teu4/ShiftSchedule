@@ -63,6 +63,7 @@ import com.shiftschedule.app.ui.components.SurfaceCard
 import com.shiftschedule.app.ui.components.TemplateEditorModal
 import com.shiftschedule.app.ui.components.WeekHeader
 import com.shiftschedule.app.ui.components.OnboardingScreen
+import com.shiftschedule.app.ui.components.ShiftLegend
 import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
 import com.shiftschedule.app.util.DateUtils
 import com.shiftschedule.app.util.LocalLang
