@@ -25,7 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberDatePickerState // (или material. если не используешь Material3)
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -45,6 +45,8 @@ import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
 import com.shiftschedule.app.util.DateUtils
+import com.shiftschedule.app.util.LocalLang
+import com.shiftschedule.app.util.tr
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -63,18 +65,17 @@ fun EditScheduleModal(
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var color by remember { mutableStateOf(initial?.color ?: "#6750A4") }
-    // Manual mode is deliberately the default for every new schedule unless
-    // the user explicitly arrived here through a template's "Использовать" action.
     var templateId by remember { mutableStateOf(initial?.templateId ?: initialTemplateId) }
     var startDate by remember { mutableStateOf(initial?.startDate?.let(DateUtils::tryParseDate) ?: LocalDate.now()) }
     var datePicker by remember { mutableStateOf(false) }
+    val lang = LocalLang.current
     val colors = listOf("#6750A4", "#34C759", "#FF9500", "#FF3B30", "#AF52DE", "#00C7BE", "#FF2D55", "#5AC8FA", "#FFCC00", "#8E8E93", "#007AFF", "#FF6B35")
 
     ModalBottomSheet(onDismissRequest = onDismiss, shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text(if (initial == null) "Новый график" else "Настроить график", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            Text(if (initial == null) tr("new_schedule") else tr("edit_schedule"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
             Text(
-                if (initial == null) "Выберите ритм или оставьте ручной режим." else "Изменения сохраняются только для этого графика.",
+                if (initial == null) tr("schedule_create_hint") else tr("schedule_edit_hint"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -84,15 +85,15 @@ fun EditScheduleModal(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it.take(40) },
-                label = { Text("Название") },
-                placeholder = { Text("Основная работа") },
+                label = { Text(tr("name_label")) },
+                placeholder = { Text(tr("schedule_name_placeholder")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             )
 
             Spacer(Modifier.size(16.dp))
-            Text("Цвет графика", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(tr("schedule_color"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Row(Modifier.fillMaxWidth().padding(top = 9.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 colors.take(6).forEach { ColorChoice(it, color == it) { color = it } }
             }
@@ -101,8 +102,8 @@ fun EditScheduleModal(
             }
 
             Spacer(Modifier.size(18.dp))
-            Text("Ритм смен", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text("Без шаблона выбран по умолчанию.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp, bottom = 8.dp))
+            Text(tr("shift_rhythm"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(tr("manual_default"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp, bottom = 8.dp))
 
             Surface(
                 onClick = { templateId = null },
@@ -113,8 +114,8 @@ fun EditScheduleModal(
                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("✦", color = MaterialTheme.colorScheme.primary, fontSize = 18.sp)
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                        Text("Без шаблона", fontWeight = FontWeight.Bold)
-                        Text("Смены меняются вручную", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(tr("no_template"), fontWeight = FontWeight.Bold)
+                        Text(tr("manual"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -130,10 +131,10 @@ fun EditScheduleModal(
                     Column(Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(template.name, color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, modifier = Modifier.width(64.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(template.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Text(template.displayDescription(lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                         }
                         if (active) {
-                            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 template.getPatternList().take(8).forEach { code ->
                                     ShiftType.fromCode(code)?.let { t ->
                                         if (showEmoji) {
@@ -153,16 +154,16 @@ fun EditScheduleModal(
 
             if (onCreateTemplate != null) {
                 TextButton(onClick = onCreateTemplate, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                    Text("+ Создать шаблон")
+                    Text("+ ${tr("new_template")}")
                 }
             }
 
             Spacer(Modifier.size(16.dp))
-            Text("Начало цикла", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(tr("start_date"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Surface(onClick = { datePicker = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                    Text("Изменить", modifier = Modifier.weight(1f).padding(start = 10.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, color = MaterialTheme.colorScheme.primary)
+                    Text(tr("edit"), modifier = Modifier.weight(1f).padding(start = 10.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, color = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -183,8 +184,8 @@ fun EditScheduleModal(
                 enabled = name.trim().isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(17.dp)
-            ) { Text(if (initial == null) "Создать график" else "Сохранить", fontWeight = FontWeight.Bold) }
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Отмена") }
+            ) { Text(if (initial == null) tr("create_schedule") else tr("save"), fontWeight = FontWeight.Bold) }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(tr("cancel")) }
             Spacer(Modifier.size(28.dp))
         }
     }
@@ -194,9 +195,9 @@ fun EditScheduleModal(
         DatePickerDialog(
             onDismissRequest = { datePicker = false },
             confirmButton = {
-                TextButton(onClick = { state.selectedDateMillis?.let { startDate = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }; datePicker = false }) { Text("Выбрать") }
+                TextButton(onClick = { state.selectedDateMillis?.let { startDate = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }; datePicker = false }) { Text(tr("select")) }
             },
-            dismissButton = { TextButton(onClick = { datePicker = false }) { Text("Отмена") } }
+            dismissButton = { TextButton(onClick = { datePicker = false }) { Text(tr("cancel")) } }
         ) { DatePicker(state) }
     }
 }

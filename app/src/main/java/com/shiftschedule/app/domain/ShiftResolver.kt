@@ -6,20 +6,10 @@ import com.shiftschedule.app.data.model.Template
 import com.shiftschedule.app.util.DateUtils
 import java.time.LocalDate
 
-/**
- * Single source of truth for resolving a schedule into a shift for a date.
- *
- * The resolver is deliberately independent from Room, Compose and ViewModels so
- * that calendar, statistics, notifications and the widget can all use exactly
- * the same calendar semantics.
- */
 object ShiftResolver {
     fun resolve(schedule: Schedule, date: LocalDate, template: Template?): ShiftType? {
         val dateString = DateUtils.formatDate(date)
 
-        // A valid explicit exception always wins over the calculated pattern.
-        // Unknown/corrupt exception codes are ignored rather than hiding a valid
-        // base pattern forever.
         schedule.exceptions[dateString]
             ?.let(ShiftType::fromCode)
             ?.let { return it }
@@ -34,9 +24,6 @@ object ShiftResolver {
 
         var effectiveDayIndex = DateUtils.daysBetween(startDate, date)
 
-        // cycleShifts represents periods that consume days from the base cycle.
-        // Map iteration order must not affect the result, so entries are parsed,
-        // validated and processed chronologically.
         val cycleRanges = schedule.cycleShifts
             .asSequence()
             .mapNotNull { (rawStart, rawDays) ->

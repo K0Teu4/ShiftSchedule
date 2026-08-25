@@ -6,10 +6,6 @@ import com.shiftschedule.app.data.model.Template
 import com.shiftschedule.app.domain.ShiftResolver
 import java.time.LocalDate
 
-/**
- * Compatibility facade for existing callers. New domain code should use
- * ShiftResolver directly.
- */
 object PatternUtils {
     fun getShiftForDate(
         schedule: Schedule,

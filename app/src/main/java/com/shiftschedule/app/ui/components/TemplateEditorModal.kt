@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.data.model.Template
+import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.tr
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -44,7 +45,8 @@ fun TemplateEditorModal(
     onSave: (Template) -> Unit
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
-    var description by remember { mutableStateOf(initial?.description ?: "") }
+    val lang = LocalLang.current
+    var description by remember { mutableStateOf(initial?.displayDescription(lang) ?: "") }
     var pattern by remember { mutableStateOf(initial?.getPatternList() ?: emptyList()) }
 
     val trimmed = name.trim()
@@ -96,7 +98,7 @@ fun TemplateEditorModal(
             ) {
                 ShiftType.values().forEach { type ->
                     OutlinedButton(onClick = { pattern = pattern + type.code }) {
-                        Text(type.emoji + " " + type.displayName)
+                        Text(type.emoji + " " + type.displayName(lang))
                     }
                 }
             }
@@ -158,7 +160,7 @@ fun TemplateEditorModal(
                                     .clickable { pattern = pattern.filterIndexed { i, _ -> i != index } }
                                     .padding(horizontal = 10.dp, vertical = 8.dp)
                             ) {
-                                Text(t.emoji + " " + t.displayName, style = MaterialTheme.typography.bodyMedium)
+                                Text(t.emoji + " " + t.displayName(lang), style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
@@ -189,4 +191,3 @@ fun TemplateEditorModal(
         }
     }
 }
-

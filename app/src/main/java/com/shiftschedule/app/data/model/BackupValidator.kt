@@ -41,7 +41,6 @@ object BackupValidator {
             if (schedule.hourRate !in 0..1_000_000) return "Invalid hourly rate"
             if (schedule.dayHours !in 1..24 || schedule.nightHours !in 1..24) return "Invalid shift hours"
             if (schedule.templateId != null && schedule.templateId != 0 && schedule.templateId !in templateById) {
-                // Built-in templates may be omitted from old backups and will be restored below.
                 if (schedule.templateId !in builtInIds) return "Missing template ${schedule.templateId}"
             }
             if (schedule.exceptions.entries.any { (date, code) ->

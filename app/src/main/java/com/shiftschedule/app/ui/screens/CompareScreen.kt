@@ -1,7 +1,7 @@
 package com.shiftschedule.app.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -16,9 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,30 +42,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.input.pointer.pointerInput
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.ui.components.AppHeader
 import com.shiftschedule.app.ui.components.EmptyState
-import com.shiftschedule.app.ui.components.SectionLabel
 import com.shiftschedule.app.ui.components.SectorDayCell
-import com.shiftschedule.app.ui.components.ShiftStatPill
 import com.shiftschedule.app.ui.components.SurfaceCard
 import com.shiftschedule.app.ui.components.WeekHeader
+import com.shiftschedule.app.ui.theme.SharedDayOff
 import com.shiftschedule.app.ui.theme.SharedDayWork
 import com.shiftschedule.app.ui.theme.SharedNightWork
-import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
 import com.shiftschedule.app.util.DateUtils
 import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.RuHolidays
 import com.shiftschedule.app.util.monthLocale
 import com.shiftschedule.app.util.tr
+import com.shiftschedule.app.ui.viewmodel.ShiftViewModel
 import java.time.LocalDate
+import java.time.YearMonth
 
 @Composable
 fun CompareScreen(viewModel: ShiftViewModel) {
@@ -75,44 +75,53 @@ fun CompareScreen(viewModel: ShiftViewModel) {
     val settings by viewModel.settings.collectAsState()
     val currentMonth by viewModel.currentMonth.collectAsState()
     val selectedIds by viewModel.selectedCompareIds.collectAsState()
+    val lang = LocalLang.current
     var detailsDate by remember { mutableStateOf<LocalDate?>(null) }
-    var yearMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(schedules) {
         val valid = selectedIds.filter { id -> schedules.any { it.id == id } }.toSet()
-        if (schedules.isNotEmpty() && valid.isEmpty()) schedules.forEach { viewModel.toggleCompareSchedule(it.id) }
-        else selectedIds.filter { it !in valid }.forEach { viewModel.toggleCompareSchedule(it) }
+        if (schedules.isNotEmpty() && valid.isEmpty()) {
+            schedules.forEach { viewModel.toggleCompareSchedule(it.id) }
+        } else {
+            selectedIds.filter { it !in valid }.forEach { viewModel.toggleCompareSchedule(it) }
+        }
     }
 
     val selected = schedules.filter { it.id in selectedIds }
     val stats = viewModel.getMonthStats(selectedIds.toList(), currentMonth)
 
     Scaffold { padding ->
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).widthIn(max = 720.dp).padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Spacer(Modifier.height(6.dp)); AppHeader("Сравнение", "Найдите общие выходные и быстро сверяйте несколько графиков") }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding).widthIn(max = 720.dp).padding(horizontal = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Spacer(Modifier.height(6.dp))
+                AppHeader(tr("compare_title"), tr("compare_subtitle"))
+            }
             if (schedules.isEmpty()) {
-                item { EmptyState("Нечего сравнивать", "Добавьте хотя бы два графика, чтобы увидеть общие выходные.", "Перейти к графикам", {}) }
+                item { EmptyState(tr("no_schedules"), tr("create_one"), tr("add_schedule"), {}) }
             } else {
                 item {
                     SurfaceCard {
                         Column(Modifier.padding(16.dp)) {
-                            SectionLabel("Графики", "${selected.size} выбрано")
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(tr("schedules"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                                Text("${selected.size} ${tr("selected_count")}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             Spacer(Modifier.height(10.dp))
                             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 schedules.forEach { schedule ->
                                     val active = schedule.id in selectedIds
                                     val color = parseColor(schedule.color)
-                                    Surface(onClick = { viewModel.toggleCompareSchedule(schedule.id) }, shape = RoundedCornerShape(16.dp), color = if (active) color.copy(alpha = .20f) else MaterialTheme.colorScheme.surfaceContainerHigh) {
-                                        Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        onClick = { viewModel.toggleCompareSchedule(schedule.id) },
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = if (active) color.copy(alpha = .24f) else MaterialTheme.colorScheme.surfaceContainerHigh
+                                    ) {
+                                        Row(Modifier.padding(horizontal = 11.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Box(Modifier.size(9.dp).clip(CircleShape).background(color))
-                                            Text(
-                                                schedule.name,
-                                                modifier = Modifier.padding(start = 7.dp),
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                                                maxLines = 1,
-                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                            )
+                                            Text(schedule.name, Modifier.padding(start = 7.dp), style = MaterialTheme.typography.labelLarge, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
                                 }
@@ -122,92 +131,25 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                 }
                 item {
                     SurfaceCard {
-                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .15f)) { Icon(Icons.Filled.Groups, null, modifier = Modifier.padding(11.dp), tint = MaterialTheme.colorScheme.primary) }
-                            Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                                Text(if (selected.size >= 2 && (stats["shared_off"] ?: 0) > 0) "Нашли общие выходные" else "Общие выходные", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                                Text(if (selected.size >= 2) "${stats["shared_off"] ?: 0} дней в этом месяце" else "Выберите минимум два графика", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .14f)) {
+                                Icon(Icons.Filled.Groups, null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
                             }
-                            Text("✦", color = MaterialTheme.colorScheme.primary, fontSize = 22.sp)
-                        }
-                    }
-                }
-                item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(onClick = { yearMode = false }, shape = RoundedCornerShape(14.dp), color = if (!yearMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.weight(1f)) { Text("Месяц", Modifier.padding(10.dp), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold) }
-                        Surface(onClick = { yearMode = true }, shape = RoundedCornerShape(14.dp), color = if (yearMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.weight(1f)) { Text("Год", Modifier.padding(10.dp), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold) }
-                    }
-                }
-                if (!yearMode) {
-                item {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { viewModel.previousMonth() }) { Icon(Icons.Filled.ChevronLeft, "Предыдущий месяц") }
-                        Text(DateUtils.monthTitle(currentMonth, monthLocale()), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                        IconButton(onClick = { viewModel.nextMonth() }) { Icon(Icons.Filled.ChevronRight, "Следующий месяц") }
-                    }
-                }
-                item { WeekHeader(settings.weekStart, LocalLang.current) }
-                item {
-                    val days = DateUtils.getDaysInMonth(currentMonth)
-                    val offset = DateUtils.getFirstDayOffset(currentMonth, settings.weekStart)
-                    val cells = buildList<LocalDate?> { repeat(offset) { add(null) }; addAll(days); while (size % 7 != 0) add(null) }
-                    Column(
-                        modifier = Modifier.pointerInput(currentMonth) {
-                            var totalDrag = 0f
-                            detectHorizontalDragGestures(
-                                onDragStart = { totalDrag = 0f },
-                                onHorizontalDrag = { change, amount -> change.consume(); totalDrag += amount },
-                                onDragEnd = {
-                                    when {
-                                        totalDrag < -80f -> viewModel.nextMonth()
-                                        totalDrag > 80f -> viewModel.previousMonth()
-                                    }
-                                }
-                            )
-                        },
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        cells.chunked(7).forEach { week ->
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                week.forEach { date ->
-                                    if (date == null) Box(Modifier.weight(1f).aspectRatio(.92f)) else {
-                                        val pairs = selected.map { it.name to viewModel.getShiftForDate(it, date) }
-                                        val isSharedDayWork = selected.size >= 2 && pairs.all { it.second == ShiftType.DAY }
-                                        val isSharedNightWork = selected.size >= 2 && pairs.all { it.second == ShiftType.NIGHT }
-                                        SectorDayCell(
-                                            day = date.dayOfMonth,
-                                            shifts = pairs,
-                                            isToday = date == LocalDate.now(),
-                                            isCurrentMonth = true,
-                                            isSharedDayOff = selected.size >= 2 && pairs.all { it.second?.code == "O" },
-                                            isSharedDayWork = isSharedDayWork,
-                                            isSharedNightWork = isSharedNightWork,
-                                            isHoliday = settings.rfHolidays && RuHolidays.isHoliday(date),
-                                            modifier = Modifier.weight(1f),
-                                            onClick = { detailsDate = date }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CompareStatPill(SharedDayWork, (stats["shared_day"] ?: 0).toString(), "Общий день", Modifier.weight(1f))
-                        CompareStatPill(SharedNightWork, (stats["shared_night"] ?: 0).toString(), "Общая ночь", Modifier.weight(1f))
-                        ShiftStatPill(ShiftType.OFF, (stats["shared_off"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f), "Общие")
-                    }
-                }
-                item {
-                    SurfaceCard {
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                CompareLegendRow(SharedDayWork, "Общий день", "все выбранные графики — дневные")
-                                Spacer(Modifier.height(8.dp))
-                                CompareLegendRow(SharedNightWork, "Общая ночь", "все выбранные графики — ночные")
-                                Spacer(Modifier.height(8.dp))
-                                Text("День + ночь не считаются совпадением.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Column(Modifier.weight(1f).padding(start = 11.dp)) {
+                                Text(
+                                    if (selected.size >= 2 && (stats["shared_off"] ?: 0) > 0) tr("shared_off_found") else tr("shared_off"),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    if (selected.size >= 2) "${stats["shared_off"] ?: 0} ${tr("days_this_month")}" else tr("select_two_schedules"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -215,52 +157,45 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                 item {
                     SurfaceCard {
                         Column(Modifier.padding(16.dp)) {
-                            SectionLabel("Итоги")
-                            SummaryRow("Выходные", stats["total_off"] ?: 0)
-                            if (settings.rfHolidays) SummaryRow("Праздники РФ", RuHolidays.countInMonth(currentMonth))
+                            Text(tr("compare_read_title"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+                            Spacer(Modifier.height(10.dp))
+                            CompareLegendRow(SharedDayWork, tr("shared_day"), tr("compare_day_hint"))
+                            Spacer(Modifier.height(9.dp))
+                            CompareLegendRow(SharedNightWork, tr("shared_night"), tr("compare_night_hint"))
+                            Spacer(Modifier.height(9.dp))
+                            CompareLegendRow(SharedDayOff, tr("shared_short"), tr("compare_off_hint"))
+                            Spacer(Modifier.height(8.dp))
+                            Text(tr("compare_24_hint"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
-                } else {
-                    item {
-                        val totals = viewModel.getYearStats(selectedIds.toList(), currentMonth.year)
-                        SurfaceCard(
-                            modifier = Modifier.pointerInput(currentMonth.year) {
-                                var totalDrag = 0f
-                                detectHorizontalDragGestures(
-                                    onDragStart = { totalDrag = 0f },
-                                    onHorizontalDrag = { change, amount -> change.consume(); totalDrag += amount },
-                                    onDragEnd = {
-                                        when {
-                                            totalDrag < -80f -> viewModel.nextYear()
-                                            totalDrag > 80f -> viewModel.previousYear()
-                                        }
-                                    }
-                                )
-                            }
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(onClick = { viewModel.previousYear() }) { Icon(Icons.Filled.ChevronLeft, null) }
-                                    Text(currentMonth.year.toString(), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                                    IconButton(onClick = { viewModel.nextYear() }) { Icon(Icons.Filled.ChevronRight, null) }
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    ShiftStatPill(ShiftType.DAY, (totals["total_day"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
-                                    ShiftStatPill(ShiftType.NIGHT, (totals["total_night"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
-                                    ShiftStatPill(ShiftType.OFF, (totals["total_off"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
-                                }
-                                Spacer(Modifier.height(10.dp))
-                                for (month in 1..12) {
-                                    val ym = java.time.YearMonth.of(currentMonth.year, month)
-                                    val m = viewModel.getMonthStats(selectedIds.toList(), ym)
-                                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Text(com.shiftschedule.app.util.DateUtils.monthName(ym, monthLocale()), Modifier.weight(1f), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                        Text("День ${m["total_day"] ?: 0} · Ночь ${m["total_night"] ?: 0} · Выход ${m["total_off"] ?: 0}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                                    }
-                                }
-                            }
+                item {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { viewModel.previousMonth() }) { Icon(Icons.Filled.ChevronLeft, tr("prev_month")) }
+                        Text(DateUtils.monthTitle(currentMonth, monthLocale()), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                        IconButton(onClick = { viewModel.nextMonth() }) { Icon(Icons.Filled.ChevronRight, tr("next_month")) }
+                    }
+                }
+                item { WeekHeader(settings.weekStart, lang) }
+                item {
+                    CompareCalendarGrid(
+                        month = currentMonth,
+                        weekStart = settings.weekStart,
+                        selected = selected,
+                        viewModel = viewModel,
+                        showHolidays = settings.rfHolidays,
+                        onSwipeLeft = viewModel::nextMonth,
+                        onSwipeRight = viewModel::previousMonth,
+                        onDayClick = { detailsDate = it }
+                    )
+                }
+                item {
+                    SurfaceCard {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(tr("month_summary"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+                            SummaryRow(tr("shared_day"), stats["shared_day"] ?: 0, SharedDayWork)
+                            SummaryRow(tr("shared_night"), stats["shared_night"] ?: 0, SharedNightWork)
+                            SummaryRow(tr("shared_short"), stats["shared_off"] ?: 0, SharedDayOff)
                         }
                     }
                 }
@@ -275,23 +210,18 @@ fun CompareScreen(viewModel: ShiftViewModel) {
             title = { Text("${date.dayOfMonth}.${date.monthValue}.${date.year}") },
             text = {
                 Column {
+                    if (settings.rfHolidays && RuHolidays.isHoliday(date)) {
+                        Text(tr("holiday_legend"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
+                    }
                     selected.forEach { schedule ->
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                schedule.name,
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(schedule.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             val shift = viewModel.getShiftForDate(schedule, date)
                             Text(
-                                shift?.let { if (settings.showEmoji) "${it.emoji} ${it.displayName(LocalLang.current)}" else it.displayName(LocalLang.current) } ?: "—",
-                                modifier = Modifier.padding(start = 12.dp),
+                                shift?.let { if (settings.showEmoji) "${it.emoji} ${it.displayName(lang)}" else it.displayName(lang) } ?: "—",
+                                Modifier.padding(start = 12.dp),
                                 maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -302,27 +232,81 @@ fun CompareScreen(viewModel: ShiftViewModel) {
     }
 }
 
-@Composable private fun SummaryRow(label: String, value: Int, suffix: String = "") { Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant); Text("$value$suffix", fontWeight = FontWeight.Bold) } }
 @Composable
-private fun CompareStatPill(color: Color, value: String, label: String, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Row(Modifier.padding(horizontal = 10.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(color))
-            Column(Modifier.padding(start = 7.dp)) {
-                Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
-                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, softWrap = false)
+private fun CompareCalendarGrid(
+    month: YearMonth,
+    weekStart: String,
+    selected: List<Schedule>,
+    viewModel: ShiftViewModel,
+    showHolidays: Boolean,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
+    onDayClick: (LocalDate) -> Unit
+) {
+    val days = DateUtils.getDaysInMonth(month)
+    val offset = DateUtils.getFirstDayOffset(month, weekStart)
+    val cells = buildList<LocalDate?> {
+        repeat(offset) { add(null) }
+        addAll(days)
+        while (size % 7 != 0) add(null)
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .pointerInput(month) {
+                var drag = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { drag = 0f },
+                    onHorizontalDrag = { change, amount -> change.consume(); drag += amount },
+                    onDragEnd = { if (drag < -70f) onSwipeLeft() else if (drag > 70f) onSwipeRight() }
+                )
+            },
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        cells.chunked(7).forEach { week ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                week.forEach { date ->
+                    if (date == null) {
+                        Box(Modifier.weight(1f).aspectRatio(.94f))
+                    } else {
+                        val pairs = selected.map { it.name to viewModel.getShiftForDate(it, date) }
+                        val dayMatch = selected.size >= 2 && pairs.all { it.second?.isDayLike == true }
+                        val nightMatch = selected.size >= 2 && pairs.all { it.second?.isNightLike == true }
+                        SectorDayCell(
+                            day = date.dayOfMonth,
+                            shifts = pairs,
+                            isToday = date == LocalDate.now(),
+                            isCurrentMonth = true,
+                            isSharedDayOff = selected.size >= 2 && pairs.all { it.second == ShiftType.OFF },
+                            isSharedDayWork = dayMatch,
+                            isSharedNightWork = nightMatch,
+                            isHoliday = showHolidays && RuHolidays.isHoliday(date),
+                            modifier = Modifier.weight(1f),
+                            onClick = { onDayClick(date) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
+private fun SummaryRow(label: String, value: Int, color: Color) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(9.dp).clip(CircleShape).background(color))
+        Text(label, Modifier.weight(1f).padding(start = 9.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(value.toString(), fontWeight = FontWeight.ExtraBold)
+    }
+}
+
+@Composable
 private fun CompareLegendRow(color: Color, title: String, description: String) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(18.dp).border(2.dp, color, RoundedCornerShape(5.dp)))
-        Column(Modifier.padding(start = 10.dp)) {
-            Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        Box(Modifier.size(20.dp).border(2.dp, color, RoundedCornerShape(6.dp)))
+        Column(Modifier.padding(start = 10.dp).weight(1f)) {
+            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }

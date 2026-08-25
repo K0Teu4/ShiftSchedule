@@ -1,13 +1,13 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ShiftWeave</string>
     <string name="launcher_name">ShiftWeave</string>
     <string name="tab_settings">Settings</string>
     <string name="appearance_theme">Theme</string>
+    <string name="theme_system">System</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
-    <string name="theme_sepia">Sepia</string>
-    <string name="theme_midnight">Midnight</string>
+    
     <string name="notifications">Notifications</string>
     <string name="reminders">Reminders</string>
     <string name="reminders_desc">Get notified before your shift</string>
@@ -22,8 +22,8 @@
     <string name="today_label">Today</string>
     <string name="shared_off">Shared day off</string>
     <string name="app_info_title">About App</string>
-    <string name="app_info_desc">Shift Schedule is a tool for planning work shifts. Supports multiple schedules, JSON export, and flexible notifications.</string>
-    <string name="app_license">License: MIT</string>
+    <string name="app_info_desc">ShiftWeave helps you plan shift work with schedules, templates, comparison, holidays, widgets and notifications.</string>
+    <string name="app_license">Works offline · data stays on your device</string>
     <string name="settings_controls_title">Controls</string>
     <string name="settings_controls_desc">Long press on day: edit. Swipe on schedule: delete. Tap month header: go to today.</string>
     <string name="save">Save</string>

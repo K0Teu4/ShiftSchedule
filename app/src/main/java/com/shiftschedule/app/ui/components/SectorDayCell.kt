@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -24,16 +25,17 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.ShiftType
+import androidx.compose.ui.graphics.StrokeCap
 import com.shiftschedule.app.ui.theme.SharedDayOff
 import com.shiftschedule.app.ui.theme.SharedDayWork
 import com.shiftschedule.app.ui.theme.SharedNightWork
+import com.shiftschedule.app.util.LocalLang
 
 @Composable
 fun SectorDayCell(
     day: Int,
-    shifts: List<Pair<String, ShiftType?>>, 
+    shifts: List<Pair<String, ShiftType?>>,
     isToday: Boolean,
     isCurrentMonth: Boolean,
     isSharedDayOff: Boolean,
@@ -44,35 +46,32 @@ fun SectorDayCell(
     onClick: () -> Unit = {}
 ) {
     val haptics = LocalHapticFeedback.current
-    val holidayColor = Color(0xFFFF2D55)
-    val shape = RoundedCornerShape(12.dp)
+    val lang = LocalLang.current
+    val shape = RoundedCornerShape(13.dp)
     val hasShifts = shifts.any { it.second != null }
-    // A common working day is only a match when every selected schedule has
-    // the SAME working shift. Day + Night is intentionally not highlighted.
-    val sharedWorkColor = when {
-        isSharedDayWork -> SharedDayWork
-        isSharedNightWork -> SharedNightWork
-        else -> Color.Transparent
+    val outline = when {
+        isSharedDayWork && isSharedNightWork -> Brush.horizontalGradient(listOf(SharedDayWork, SharedNightWork))
+        isSharedDayWork -> Brush.linearGradient(listOf(SharedDayWork, SharedDayWork))
+        isSharedNightWork -> Brush.linearGradient(listOf(SharedNightWork, SharedNightWork))
+        isSharedDayOff -> Brush.linearGradient(listOf(SharedDayOff, SharedDayOff))
+        isToday -> Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary))
+        else -> null
     }
-
-    // Priority is deliberately explicit: today remains visible even when the
-    // date is also a common workday/common day off.
-    val outerBorder = when {
-        sharedWorkColor != Color.Transparent -> sharedWorkColor
-        isToday -> MaterialTheme.colorScheme.primary
-        isSharedDayOff -> SharedDayOff
-        isHoliday -> holidayColor
-        else -> Color.Transparent
+    val outlineWidth = when {
+        isSharedDayWork || isSharedNightWork || isSharedDayOff -> 2.dp
+        isToday -> 1.5.dp
+        else -> 0.dp
     }
 
     val description = buildString {
         append(day)
         shifts.forEach { (name, shift) ->
-            append(", ").append(name).append(": ").append(shift?.displayName ?: "нет смены")
+            append(", ").append(name).append(": ").append(shift?.displayName(lang) ?: "—")
         }
-        if (isSharedDayWork) append(", общий дневной рабочий день")
-        if (isSharedNightWork) append(", общий ночной рабочий день")
-        if (isSharedDayOff) append(", общий выходной")
+        if (isSharedDayWork) append(", ").append(if (lang == "en") "shared day" else "общий день")
+        if (isSharedNightWork) append(", ").append(if (lang == "en") "shared night" else "общая ночь")
+        if (isSharedDayOff) append(", ").append(if (lang == "en") "shared day off" else "общий выходной")
+        if (isHoliday) append(", ").append(if (lang == "en") "public holiday" else "государственный праздник")
     }
 
     Box(
@@ -80,7 +79,6 @@ fun SectorDayCell(
             .aspectRatio(0.94f)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
-            .border(if (outerBorder == Color.Transparent) 0.dp else 2.dp, outerBorder, shape)
             .clickable {
                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onClick()
@@ -91,76 +89,47 @@ fun SectorDayCell(
         if (hasShifts) {
             Row(Modifier.fillMaxSize().clip(shape)) {
                 shifts.forEach { (_, shift) ->
-                    val fill = shift?.color ?: MaterialTheme.colorScheme.surface
+                    val fill = shift?.color ?: MaterialTheme.colorScheme.surfaceVariant
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxSize()
-                            .background(fill.copy(alpha = if (shift == null) 0.08f else 0.34f))
+                            .background(fill.copy(alpha = if (shift == null) 0.18f else 0.9f))
                     )
                 }
             }
         } else if (isHoliday) {
-            Box(Modifier.fillMaxSize().background(holidayColor.copy(alpha = 0.16f)))
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f)))
         }
 
-        // The outer contour is the only common-work marker. Day and night use
-        // different colors; a mixed Day + Night combination gets no contour.
-        if (sharedWorkColor != Color.Transparent) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(3.dp)
-                    .border(2.dp, sharedWorkColor.copy(alpha = 0.98f), shape)
-            )
-        }
-
-        // Common days off keep the date number visible. The previous version
-        // replaced the number with a star, which made the calendar harder to read.
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(29.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)),
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = day.toString(),
+                day.toString(),
                 color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isToday || sharedWorkColor != Color.Transparent || isSharedDayOff) FontWeight.ExtraBold else FontWeight.Medium
-            )
-        }
-
-        if (isToday && sharedWorkColor != Color.Transparent) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(6.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.95f), RoundedCornerShape(8.dp))
-            )
-        }
-
-        if (isSharedDayOff) {
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(7.dp)
-                    .clip(CircleShape)
-                    .background(SharedDayOff)
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (isToday || outline != null) FontWeight.ExtraBold else FontWeight.Bold
             )
         }
 
         if (isHoliday) {
             Box(
                 Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(4.dp)
-                    .size(5.dp)
+                    .size(6.dp)
                     .clip(CircleShape)
-                    .background(holidayColor)
+                    .background(MaterialTheme.colorScheme.tertiary)
             )
+        }
+
+        if (outline != null && outlineWidth > 0.dp) {
+            Box(Modifier.matchParentSize().border(outlineWidth, outline, shape))
         }
     }
 }

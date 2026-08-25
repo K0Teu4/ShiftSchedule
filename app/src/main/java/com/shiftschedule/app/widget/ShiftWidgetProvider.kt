@@ -97,17 +97,12 @@ class ShiftWidgetProvider : AppWidgetProvider() {
                     }
                     val locale = if (lang == "en") Locale.ENGLISH else Locale("ru")
 
-                    val (bg, titleColor, textColor) = when (settings.theme) {
-                        "light" -> Triple(0xE6FAF9F6.toInt(), 0xFF17171A.toInt(), 0xFF4A4A50.toInt())
-                        "sand" -> Triple(0xE6FFF6E9.toInt(), 0xFF241A0E.toInt(), 0xFF6E5A43.toInt())
-                        "sepia" -> Triple(0xE633291D.toInt(), 0xFFF4EAD9.toInt(), 0xFFD8CBB6.toInt())
-                        "midnight" -> Triple(0xE60A0F16.toInt(), 0xFFE4F6FF.toInt(), 0xFFAAB8CE.toInt())
-                        "ocean" -> Triple(0xE607404C.toInt(), 0xFFDFF6F9.toInt(), 0xFF9CCFD6.toInt())
-                        "forest" -> Triple(0xE6142019.toInt(), 0xFFE8F3E9.toInt(), 0xFFA8BCA9.toInt())
-                        "berry" -> Triple(0xE6221220.toInt(), 0xFFF6E9F4.toInt(), 0xFFC9B1C4.toInt())
-                        "plum" -> Triple(0xE62A1439.toInt(), 0xFFF1E9FF.toInt(), 0xFFC5B8D8.toInt())
-                        "graphite" -> Triple(0xE61A1C20.toInt(), 0xFFE8EAED.toInt(), 0xFFB9BDC5.toInt())
-                        else -> Triple(0xD91A1A1A.toInt(), 0xFFFFFFFF.toInt(), 0xFFBFBFBF.toInt())
+                    val systemLight = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_NO
+                    val lightWidget = settings.theme == "light" || (settings.theme == "system" && systemLight)
+                    val (bg, titleColor, textColor) = if (lightWidget) {
+                        Triple(0xE6FAF9F6.toInt(), 0xFF17171A.toInt(), 0xFF4A4A50.toInt())
+                    } else {
+                        Triple(0xE61A2025.toInt(), 0xFFF3F4F6.toInt(), 0xFFB9C0C7.toInt())
                     }
 
                     views.setInt(R.id.widget_root, "setBackgroundColor", bg)
@@ -127,8 +122,8 @@ class ShiftWidgetProvider : AppWidgetProvider() {
                                 val template = templates.find { it.id == schedule.templateId }
                                 val shift = ShiftResolver.resolve(schedule, today, template)
                                 if (shift != null) {
-                                    val marker = if (settings.showEmoji) shift.emoji else shift.displayName(lang).take(1)
-                                    append(marker + " " + schedule.name + " — " + shift.displayName(lang))
+                                    val marker = if (settings.showEmoji) shift.emoji + " " else ""
+                                    append(marker + schedule.name + " — " + shift.displayName(lang))
                                 } else {
                                     val manual = if (lang == "en") "manual" else "ручной"
                                     append("▪ " + schedule.name + " — " + manual)

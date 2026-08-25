@@ -184,14 +184,17 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addTemplate(template: Template) {
+    fun addTemplate(template: Template, onCreated: (Int) -> Unit = {}) {
         viewModelScope.launch {
             try {
                 val cleanName = template.name.trim().replace(Regex("\\s+"), " ")
                 if (cleanName.isEmpty()) return@launch
                 val maxIndex = repository.getMaxTemplateSortIndex()
-                repository.insertTemplate(template.copy(name = cleanName, sortIndex = maxIndex + 1))
-            } catch (e: Exception) { e.printStackTrace() }
+                val id = repository.insertTemplate(template.copy(name = cleanName, sortIndex = maxIndex + 1)).toInt()
+                onCreated(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -284,7 +287,6 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
                     NotificationScheduler.cancel(getApplication())
                     NotificationHelper.cancelSummaryNotification(getApplication())
                 } else if (newSettings.notifications) {
-                    // Re-schedule after every settings change; this also repairs a stale worker.
                     NotificationScheduler.scheduleNext(getApplication(), newSettings.reminderTime)
                 }
             } catch (e: Exception) {
@@ -309,7 +311,6 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
             val data = gson.fromJson(root, BackupData::class.java) ?: return false
             if (BackupValidator.validate(data) != null) return false
 
-            // Built-in templates are application-owned and may be absent from older backups.
             val templatesById = data.templates.associateBy { it.id }.toMutableMap()
             Template.getBuiltInTemplates().forEach { builtIn ->
                 if (templatesById[builtIn.id]?.isBuiltIn != true) {

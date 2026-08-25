@@ -37,8 +37,8 @@ class MainActivity : ComponentActivity() {
             val viewModel: ShiftViewModel = viewModel()
             val settings by viewModel.settings.collectAsState()
             val lightBased = when (settings.theme) {
-                "light", "sand" -> true
-                "dynamic" -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_NO
+                "light" -> true
+                "system" -> (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_NO
                 else -> false
             }
             val lang = when (settings.lang) {

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.ShiftType
+import com.shiftschedule.app.util.LocalLang
 
 @Composable
 fun AppHeader(
@@ -43,9 +44,6 @@ fun AppHeader(
     modifier: Modifier = Modifier,
     action: (@Composable RowScope.() -> Unit)? = null
 ) {
-    // A vertical header is deliberately used when an action exists. This prevents
-    // long Russian titles/subtitles from colliding with the schedule selector on
-    // small screens.
     Column(modifier = modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -98,6 +96,7 @@ fun ShiftHeroCard(
     showEmoji: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val lang = LocalLang.current
     val accent = shift?.color ?: MaterialTheme.colorScheme.primary
     val container = Color(
         red = (accent.red * 0.22f + MaterialTheme.colorScheme.surface.red * 0.78f).coerceIn(0f, 1f),
@@ -121,14 +120,13 @@ fun ShiftHeroCard(
                             Spacer(Modifier.width(10.dp))
                         }
                         Text(
-                            shift?.displayName ?: "Нет смены",
+                            shift?.displayName(lang) ?: if (lang == "en") "No shift" else "Нет смены",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = if (shift != null) accent else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
-                // Navigation to today is kept in the month toolbar to avoid duplicate controls.
 
             }
             Spacer(Modifier.height(18.dp))
@@ -143,15 +141,15 @@ fun ShiftHeroCard(
 }
 
 @Composable
-fun ShiftStatPill(shift: ShiftType, value: String, showEmoji: Boolean, modifier: Modifier = Modifier, label: String = shift.displayName) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+fun ShiftStatPill(shift: ShiftType, value: String, showEmoji: Boolean, modifier: Modifier = Modifier, label: String = shift.displayName(LocalLang.current)) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(18.dp), color = shift.color.copy(alpha = 0.12f)) {
+        Row(Modifier.padding(horizontal = 10.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
             if (showEmoji) Text(shift.emoji, fontSize = 16.sp)
-            else Box(Modifier.size(10.dp).clip(CircleShape).background(shift.color))
+            else Box(Modifier.size(9.dp).clip(CircleShape).background(shift.color))
             Spacer(Modifier.width(7.dp))
-            Column {
-                Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
-                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Column(Modifier.weight(1f)) {
+                Text(value, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         }
     }
@@ -161,10 +159,8 @@ fun ShiftStatPill(shift: ShiftType, value: String, showEmoji: Boolean, modifier:
 fun ShiftLegend(showEmoji: Boolean = true, modifier: Modifier = Modifier) {
     SurfaceCard(modifier) {
         Column(Modifier.padding(16.dp)) {
-            Text("Обозначения", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(if (LocalLang.current == "en") "Legend" else "Обозначения", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
-            // Two columns are more stable on narrow phones than the old three-column
-            // grid, where long labels could overlap or become clipped.
             val types = ShiftType.values().toList()
             types.chunked(2).forEachIndexed { index, row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -181,12 +177,12 @@ fun ShiftLegend(showEmoji: Boolean = true, modifier: Modifier = Modifier) {
 private fun LegendItem(type: ShiftType, showEmoji: Boolean, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         if (showEmoji) {
-            Text(type.emoji, fontSize = 14.sp)
+            Text(type.emoji, fontSize = 13.sp)
         } else {
             Box(Modifier.size(10.dp).clip(CircleShape).background(type.color))
         }
         Text(
-            type.displayName,
+            type.displayName(LocalLang.current),
             Modifier.padding(start = 7.dp),
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,

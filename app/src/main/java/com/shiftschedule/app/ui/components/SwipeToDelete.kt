@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -38,56 +37,38 @@ fun SwipeToDelete(
 ) {
     val offsetX = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
-    val threshold = with(density) { 120.dp.toPx() }
+    val threshold = with(LocalDensity.current) { 100.dp.toPx() }
 
     Box(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .matchParentSize()
-                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.25f))
-                .padding(horizontal = 24.dp),
+            modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.error.copy(alpha = 0.22f)).padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                Icons.Filled.Delete,
-                contentDescription = tr("delete"),
-                tint = MaterialTheme.colorScheme.error
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                tr("delete"),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.titleMedium
-            )
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.Filled.Delete, tr("delete"), tint = MaterialTheme.colorScheme.error)
+            Spacer(Modifier.width(8.dp))
+            Text(tr("delete"), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.titleMedium)
         }
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, amount ->
+                            change.consume()
+                            offsetX.snapTo((offsetX.value + amount).coerceAtMost(0f))
+                        },
                         onDragEnd = {
-                            scope.launch {
-                                if (offsetX.value < -threshold) {
-                                    offsetX.snapTo(0f)
-                                    onDismiss()
-                                } else {
-                                    offsetX.animateTo(0f)
-                                }
+                            if (offsetX.value <= -threshold) {
+                                scope.launch { offsetX.animateTo(0f) }
+                                onDismiss()
+                            } else {
+                                scope.launch { offsetX.animateTo(0f) }
                             }
                         },
-                        onDragCancel = {
-                            scope.launch { offsetX.animateTo(0f) }
-                        }
-                    ) { change, dragAmount ->
-                        change.consume()
-                        scope.launch {
-                            offsetX.snapTo((offsetX.value + dragAmount).coerceAtMost(0f))
-                        }
-                    }
+                        onDragCancel = { scope.launch { offsetX.animateTo(0f) } }
+                    )
                 }
         ) {
             content()

@@ -53,4 +53,22 @@ class StatsUtilsTest {
         val s = manual(1, mapOf("2026-08-01" to "D", "2026-09-01" to "D"))
         assertEquals(2, StatsUtils.yearStats(listOf(s), emptyMap(), listOf(1), 2026)["total_day"])
     }
+    @Test
+    fun twentyFourCountsAsDayAndNightAndOneWorkShift() {
+        val a = manual(1, mapOf("2026-08-10" to "24"))
+        val b = manual(2, mapOf("2026-08-10" to "D"))
+        val day = StatsUtils.monthStats(listOf(a, b), emptyMap(), listOf(1, 2), YearMonth.of(2026, 8))
+        assertEquals(2, day["total_day"])
+        assertEquals(1, day["total_night"])
+        assertEquals(1, day["total_24"])
+        assertEquals(2, day["total_work"])
+        assertEquals(1, day["shared_day"])
+        assertEquals(0, day["shared_night"])
+
+        val night = manual(3, mapOf("2026-08-10" to "N"))
+        val sharedNight = StatsUtils.monthStats(listOf(a, night), emptyMap(), listOf(1, 3), YearMonth.of(2026, 8))
+        assertEquals(1, sharedNight["shared_night"])
+        assertEquals(0, sharedNight["shared_day"])
+    }
+
 }

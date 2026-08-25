@@ -12,12 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
@@ -34,7 +35,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -83,32 +83,34 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
     val filteredSchedules = schedules.filter { it.name.contains(query, true) }
     val filteredTemplates = templates.filter { it.name.contains(query, true) || it.description.contains(query, true) }
     val reorderState = rememberReorderState()
+    val scheduleReorderState = rememberReorderState()
     val userTemplates = filteredTemplates.filter { !it.isBuiltIn }
     reorderState.onMove = { from, to -> if (query.isBlank()) viewModel.reorderTemplates(from, to) }
+    scheduleReorderState.onMove = { from, to -> if (query.isBlank()) viewModel.reorderSchedules(from, to) }
 
-    Scaffold(floatingActionButton = { FloatingActionButton(onClick = { createTemplate = true }, shape = RoundedCornerShape(20.dp)) { Icon(Icons.Filled.Add, tr("new_template")) } }) { padding ->
+    Scaffold { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).widthIn(max = 720.dp).padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Spacer(Modifier.height(6.dp)) }
             item {
-                AppHeader("Шаблоны", "Соберите ритм смен один раз — календарь повторит его автоматически")
+                AppHeader(tr("templates_title"), tr("templates_subtitle"))
             }
             item {
-                OutlinedTextField(value = query, onValueChange = viewModel::setSearchQuery, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Поиск графика или шаблона") }, leadingIcon = { Icon(Icons.Filled.Search, null) }, singleLine = true, shape = RoundedCornerShape(18.dp))
+                OutlinedTextField(value = query, onValueChange = viewModel::setSearchQuery, modifier = Modifier.fillMaxWidth(), placeholder = { Text(tr("search_placeholder")) }, leadingIcon = { Icon(Icons.Filled.Search, null) }, singleLine = true, shape = RoundedCornerShape(18.dp))
             }
-            item { SectionLabel("Мои графики", action = "Добавить", onAction = { createSchedule = true }) }
+            item { SectionLabel(tr("my_schedules"), action = tr("add_schedule"), onAction = { createSchedule = true }) }
             if (filteredSchedules.isEmpty()) {
-                item { EmptyState("Пока нет графиков", "Создайте первый — он появится в календаре и статистике.", "Создать график", { createSchedule = true }) }
+                item { EmptyState(tr("no_schedules_yet"), tr("create_first"), tr("add_schedule"), { createSchedule = true }) }
             } else {
                 items(filteredSchedules, key = { it.id }) { schedule ->
-                    ScheduleCardNew(schedule, templates.firstOrNull { it.id == schedule.templateId }, lang, onEdit = { editSchedule = schedule }, onCopy = { viewModel.duplicateSchedule(schedule) }, onDelete = { deleteSchedule = schedule })
+                    ScheduleCardNew(schedule, templates.firstOrNull { it.id == schedule.templateId }, lang, dragModifier = if (query.isBlank()) Modifier.dragContainer(scheduleReorderState, filteredSchedules.indexOfFirst { it.id == schedule.id }, 120f, filteredSchedules.size) else Modifier, onEdit = { editSchedule = schedule }, onCopy = { viewModel.duplicateSchedule(schedule) }, onDelete = { deleteSchedule = schedule })
                 }
             }
-            item { Spacer(Modifier.height(6.dp)); SectionLabel("Готовые шаблоны") }
+            item { Spacer(Modifier.height(6.dp)); SectionLabel(tr("built_in")) }
             items(filteredTemplates.filter { it.isBuiltIn }, key = { "b${it.id}" }) { template ->
                 TemplateCardNew(template, lang, settings.showEmoji, onUse = { pendingTemplateId = template.id; createSchedule = true }, onEdit = { editTemplate = template }, onCopy = { viewModel.duplicateTemplate(template) }, onDelete = null)
             }
-            item { SectionLabel("Мои шаблоны", action = "Создать", onAction = { createTemplate = true }) }
-            if (userTemplates.isEmpty()) item { SurfaceCard { Column(Modifier.fillMaxWidth().padding(18.dp)) { Text("Создайте свой цикл", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold); Text("Например: 2 день → 2 ночь → 2 выходных.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)); Button(onClick = { createTemplate = true }, modifier = Modifier.padding(top = 12.dp), shape = RoundedCornerShape(14.dp)) { Text("Новый шаблон") } } } }
+            item { SectionLabel(tr("user_templates"), action = tr("create"), onAction = { createTemplate = true }) }
+            if (userTemplates.isEmpty()) item { SurfaceCard { Column(Modifier.fillMaxWidth().padding(18.dp)) { Text(tr("create_template"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold); Text(tr("template_example"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)); Button(onClick = { createTemplate = true }, modifier = Modifier.padding(top = 12.dp), shape = RoundedCornerShape(14.dp)) { Text(tr("new_template")) } } } }
             else items(userTemplates, key = { "u${it.id}" }) { template ->
                 SwipeToDelete(onDismiss = { deleteTemplate = template }) {
                     TemplateCardNew(
@@ -125,7 +127,7 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
         }
     }
 
-    if (createTemplate) TemplateEditorModal(null, { createTemplate = false }) { viewModel.addTemplate(it); createTemplate = false; createSchedule = true }
+    if (createTemplate) TemplateEditorModal(null, { createTemplate = false }) { template -> viewModel.addTemplate(template) { id -> pendingTemplateId = id; createTemplate = false; createSchedule = true } }
     editTemplate?.let { TemplateEditorModal(it, { editTemplate = null }) { viewModel.updateTemplate(it); editTemplate = null } }
     if (createSchedule) EditScheduleModal(
         initial = null,
@@ -137,23 +139,23 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
         showEmoji = settings.showEmoji
     )
     editSchedule?.let { EditScheduleModal(it, templates, onDismiss = { editSchedule = null }, onSave = { viewModel.updateSchedule(it); editSchedule = null }) }
-    deleteSchedule?.let { item -> AlertDialog(onDismissRequest = { deleteSchedule = null }, title = { Text("Удалить график?") }, text = { Text("${item.name} будет удалён. Смены-исключения тоже исчезнут.") }, confirmButton = { TextButton(onClick = { viewModel.deleteSchedule(item); deleteSchedule = null }) { Text("Удалить") } }, dismissButton = { TextButton(onClick = { deleteSchedule = null }) { Text("Отмена") } }) }
-    deleteTemplate?.let { item -> AlertDialog(onDismissRequest = { deleteTemplate = null }, title = { Text("Удалить шаблон?") }, text = { Text("Графики, которые используют его, останутся, но перестанут быть привязаны к шаблону.") }, confirmButton = { TextButton(onClick = { viewModel.deleteTemplate(item); deleteTemplate = null }) { Text("Удалить") } }, dismissButton = { TextButton(onClick = { deleteTemplate = null }) { Text("Отмена") } }) }
+    deleteSchedule?.let { item -> AlertDialog(onDismissRequest = { deleteSchedule = null }, title = { Text(tr("delete_schedule_q")) }, text = { Text(tr("delete_schedule_text", item.name)) }, confirmButton = { TextButton(onClick = { viewModel.deleteSchedule(item); deleteSchedule = null }) { Text(tr("delete")) } }, dismissButton = { TextButton(onClick = { deleteSchedule = null }) { Text(tr("cancel")) } }) }
+    deleteTemplate?.let { item -> AlertDialog(onDismissRequest = { deleteTemplate = null }, title = { Text(tr("delete_template_q")) }, text = { Text(tr("template_deleted_text")) }, confirmButton = { TextButton(onClick = { viewModel.deleteTemplate(item); deleteTemplate = null }) { Text(tr("delete")) } }, dismissButton = { TextButton(onClick = { deleteTemplate = null }) { Text(tr("cancel")) } }) }
 }
 
 @Composable
-private fun ScheduleCardNew(schedule: Schedule, template: Template?, lang: String, onEdit: () -> Unit, onCopy: () -> Unit, onDelete: () -> Unit) {
+private fun ScheduleCardNew(schedule: Schedule, template: Template?, lang: String, dragModifier: Modifier = Modifier, onEdit: () -> Unit, onCopy: () -> Unit, onDelete: () -> Unit) {
     val accent = runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }.getOrDefault(MaterialTheme.colorScheme.primary)
-    SurfaceCard {
+    SurfaceCard(dragModifier) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.foundation.layout.Box(Modifier.size(48.dp).clip(CircleShape).background(accent.copy(alpha = .18f)))
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(schedule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                Text(if (template != null) "Ритм: ${template.name}" else "Ручной график", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(if (template != null) "${tr("rhythm")}: ${template.name}" else tr("manual"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
-            IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, "Копировать") }
-            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, "Изменить") }
-            IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, "Удалить") }
+            IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, tr("copy")) }
+            IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, tr("edit")) }
+            IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, tr("delete")) }
         }
     }
 }
@@ -165,11 +167,11 @@ private fun TemplateCardNew(template: Template, lang: String, showEmoji: Boolean
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(template.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                    Text(template.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(template.displayDescription(lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (template.isBuiltIn) Text("Встроенный", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                if (template.isBuiltIn) Text(tr("built_in_label"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
-            Row(Modifier.fillMaxWidth().padding(top = 13.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 13.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 template.getPatternList().take(8).forEach { code ->
                     val type = ShiftType.fromCode(code)
                     if (type != null) androidx.compose.material3.Surface(shape = RoundedCornerShape(12.dp), color = type.color.copy(alpha = .16f)) {
@@ -179,10 +181,10 @@ private fun TemplateCardNew(template: Template, lang: String, showEmoji: Boolean
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onUse, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)) { Text("Использовать") }
-                IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, "Копировать") }
-                IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, "Изменить") }
-                if (onDelete != null) IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, "Удалить") }
+                Button(onClick = onUse, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)) { Text(tr("use")) }
+                IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, tr("copy")) }
+                IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, tr("edit")) }
+                if (onDelete != null) IconButton(onClick = onDelete) { Icon(Icons.Filled.DeleteOutline, tr("delete")) }
             }
         }
     }

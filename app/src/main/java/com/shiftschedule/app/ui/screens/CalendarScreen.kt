@@ -1,5 +1,6 @@
 package com.shiftschedule.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,7 +59,6 @@ import com.shiftschedule.app.ui.components.EditScheduleModal
 import com.shiftschedule.app.ui.components.EmptyState
 import com.shiftschedule.app.ui.components.SectionLabel
 import com.shiftschedule.app.ui.components.ShiftHeroCard
-import com.shiftschedule.app.ui.components.ShiftStatPill
 import com.shiftschedule.app.ui.components.SurfaceCard
 import com.shiftschedule.app.ui.components.TemplateEditorModal
 import com.shiftschedule.app.ui.components.WeekHeader
@@ -84,6 +84,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
 
     var showCreate by remember { mutableStateOf(false) }
     var showCreateTemplate by remember { mutableStateOf(false) }
+    var pendingTemplateId by remember { mutableStateOf<Int?>(null) }
     var showPicker by remember { mutableStateOf(false) }
     var editDay by remember { mutableStateOf<LocalDate?>(null) }
     var whoWhere by remember { mutableStateOf<LocalDate?>(null) }
@@ -92,18 +93,28 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
 
     LaunchedEffect(schedules, selectedId) {
         if (schedules.isEmpty()) viewModel.selectSchedule(null)
-        else if (selectedId == null || schedules.none { it.id == selectedId }) viewModel.selectSchedule(schedules.first().id)
+        else if (selectedId == null) viewModel.selectSchedule(schedules.first().id)
     }
 
     if (!loaded) return
     if (!settings.hasCompletedOnboarding && schedules.isEmpty()) {
         OnboardingScreen(onCreateClick = { showCreate = true })
         if (showCreate) {
-            EditScheduleModal(null, templates, onDismiss = { showCreate = false }, onSave = { schedule ->
+            EditScheduleModal(null, templates, onDismiss = { showCreate = false; pendingTemplateId = null }, onSave = { schedule ->
                 viewModel.addSchedule(schedule) { viewModel.selectSchedule(it) }
                 viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
                 showCreate = false
-            }, onCreateTemplate = { showCreate = false; showCreateTemplate = true }, showEmoji = settings.showEmoji)
+                pendingTemplateId = null
+            }, onCreateTemplate = { showCreate = false; showCreateTemplate = true }, initialTemplateId = pendingTemplateId, showEmoji = settings.showEmoji)
+        }
+        if (showCreateTemplate) {
+            TemplateEditorModal(null, onDismiss = { showCreateTemplate = false }, onSave = { template ->
+                viewModel.addTemplate(template) { id ->
+                    pendingTemplateId = id
+                    showCreateTemplate = false
+                    showCreate = true
+                }
+            })
         }
         return
     }
@@ -140,31 +151,29 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                 item {
                     val today = LocalDate.now()
                     val todayShift = viewModel.getShiftForDate(selected!!, today)
-                    val next = (1..120).asSequence().map { today.plusDays(it.toLong()) }.map { it to viewModel.getShiftForDate(selected!!, it) }.firstOrNull { it.second == ShiftType.DAY || it.second == ShiftType.NIGHT }
+                    val next = (1..120).asSequence().map { today.plusDays(it.toLong()) }.map { it to viewModel.getShiftForDate(selected!!, it) }.firstOrNull { it.second?.isWorking == true }
                     ShiftHeroCard(
-                        dateLabel = "Сегодня · ${today.dayOfMonth}.${today.monthValue}",
+                        dateLabel = "${tr("today_label")} · ${today.dayOfMonth}.${today.monthValue}",
                         shift = todayShift,
-                        secondaryLabel = next?.let { "Следующая · ${it.first.dayOfMonth}.${it.first.monthValue} · ${it.second?.displayName(lang)}" } ?: "Следующая смена не найдена",
+                        secondaryLabel = next?.let { "${tr("next_shift")} · ${it.first.dayOfMonth}.${it.first.monthValue} · ${it.second?.displayName(lang)}" } ?: tr("next_shift_not_found"),
                         showEmoji = settings.showEmoji
                     )
                 }
                 item {
                     val stats = viewModel.getMonthStats(listOf(selected!!.id), currentMonth)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = spacedBy(8.dp)) {
-                        ShiftStatPill(ShiftType.DAY, (stats["total_day"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
-                        ShiftStatPill(ShiftType.NIGHT, (stats["total_night"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
-                        ShiftStatPill(ShiftType.OFF, (stats["total_off"] ?: 0).toString(), settings.showEmoji, Modifier.weight(1f))
-                    }
-                }
-                item {
-                    val stats = viewModel.getMonthStats(listOf(selected!!.id), currentMonth)
                     SurfaceCard {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Итоги месяца", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${(stats["total_day"] ?: 0) + (stats["total_night"] ?: 0)} рабочих смен", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                        Column(Modifier.padding(15.dp)) {
+                            Text(tr("month_summary"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+                            Spacer(Modifier.height(8.dp))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = spacedBy(8.dp)) {
+                                MonthStat(ShiftType.DAY, stats["total_day"] ?: 0, settings.showEmoji, Modifier.weight(1f))
+                                MonthStat(ShiftType.NIGHT, stats["total_night"] ?: 0, settings.showEmoji, Modifier.weight(1f))
                             }
-                            Text("${stats["total_off"] ?: 0} выходных", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(8.dp))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = spacedBy(8.dp)) {
+                                MonthStat(ShiftType.TWENTY_FOUR, stats["total_24"] ?: 0, settings.showEmoji, Modifier.weight(1f))
+                                MonthStat(ShiftType.OFF, stats["total_off"] ?: 0, settings.showEmoji, Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -180,7 +189,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                         modifier = Modifier.size(40.dp)
                     ) {
                         Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                            Icon(Icons.Filled.Today, "Сегодня", modifier = Modifier.padding(9.dp))
+                            Icon(Icons.Filled.Today, tr("today"), modifier = Modifier.padding(9.dp))
                         }
                     }
                     IconButton(onClick = { viewModel.nextMonth() }) { Icon(Icons.Filled.ChevronRight, tr("next_month")) }
@@ -234,13 +243,13 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
     if (showPicker) {
         ModalBottomSheet(onDismissRequest = { showPicker = false }) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-                Text("Выберите график", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Text(tr("select_schedule"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
                 Spacer(Modifier.height(12.dp))
                 schedules.forEach { schedule ->
                     Surface(onClick = { viewModel.selectSchedule(schedule.id); showPicker = false }, shape = RoundedCornerShape(18.dp), color = if (schedule.id == selectedId) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(schedule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            if (schedule.id == selectedId) Text("Активен", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            if (schedule.id == selectedId) Text(tr("active"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -250,17 +259,17 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
     }
 
     editDay?.let { date ->
-        EditDayModal(schedules, selectedId, date, selected?.let { viewModel.getShiftForDate(it, date) }, { editDay = null }, { schedule, type, range, days, cycle -> viewModel.updateDayException(schedule, date, type.code, range, days, cycle); editDay = null }, { schedule -> viewModel.clearDayException(schedule, date); editDay = null })
+        EditDayModal(schedules, selectedId, date, selected?.let { viewModel.getShiftForDate(it, date) }, settings.rfHolidays && com.shiftschedule.app.util.RuHolidays.isHoliday(date), { editDay = null }, { schedule, type, range, days, cycle -> viewModel.updateDayException(schedule, date, type.code, range, days, cycle); editDay = null }, { schedule -> viewModel.clearDayException(schedule, date); editDay = null })
     }
     whoWhere?.let { date ->
         ModalBottomSheet(onDismissRequest = { whoWhere = null }) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                Text("Графики · ${date.dayOfMonth}.${date.monthValue}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Text("${tr("schedules")} · ${date.dayOfMonth}.${date.monthValue}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
                 Spacer(Modifier.height(12.dp))
                 viewModel.getShiftsForDate(date).forEach { (schedule, shift) ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(schedule.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        Text(shift?.let { "${it.emoji} ${it.displayName(lang)}" } ?: "—", style = MaterialTheme.typography.bodyLarge)
+                        Text(shift?.let { if (settings.showEmoji) "${it.emoji} ${it.displayName(lang)}" else it.displayName(lang) } ?: "—", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
                 Spacer(Modifier.height(20.dp))
@@ -268,13 +277,31 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
         }
     }
     if (showCreate) {
-        EditScheduleModal(null, templates, onDismiss = { showCreate = false }, onSave = { schedule ->
+        EditScheduleModal(null, templates, onDismiss = { showCreate = false; pendingTemplateId = null }, onSave = { schedule ->
             viewModel.addSchedule(schedule) { viewModel.selectSchedule(it) }
             viewModel.updateSettings(settings.copy(hasCompletedOnboarding = true))
             showCreate = false
-        }, onCreateTemplate = { showCreate = false; showCreateTemplate = true }, showEmoji = settings.showEmoji)
+        }, onCreateTemplate = { showCreate = false; showCreateTemplate = true }, initialTemplateId = pendingTemplateId, showEmoji = settings.showEmoji)
     }
     if (showCreateTemplate) {
-        TemplateEditorModal(null, onDismiss = { showCreateTemplate = false }, onSave = { viewModel.addTemplate(it); showCreateTemplate = false; showCreate = true })
+        TemplateEditorModal(null, onDismiss = { showCreateTemplate = false }, onSave = { template -> viewModel.addTemplate(template) { id -> pendingTemplateId = id; showCreateTemplate = false; showCreate = true } })
     }
 }
+
+@Composable
+private fun MonthStat(type: ShiftType, value: Int, showEmoji: Boolean, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(15.dp),
+        color = type.color.copy(alpha = 0.13f)
+    ) {
+        Row(Modifier.padding(horizontal = 11.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (showEmoji) Text(type.emoji, fontSize = 15.sp) else Box(Modifier.size(9.dp).background(type.color, RoundedCornerShape(4.dp)))
+            Column(Modifier.padding(start = 8.dp).weight(1f)) {
+                Text(value.toString(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
+                Text(type.displayName(LocalLang.current), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+

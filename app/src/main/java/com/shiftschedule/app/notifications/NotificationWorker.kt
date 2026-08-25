@@ -27,8 +27,6 @@ class NotificationWorker(
             return Result.success()
         }
 
-        // Android 13+ can have the runtime permission denied even though the
-        // app-level setting is enabled. Do not crash or repeatedly retry.
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             NotificationScheduler.scheduleNext(context, settings.reminderTime)
             return Result.success()
@@ -71,7 +69,10 @@ class NotificationWorker(
         }
 
         val lines = shifts.mapNotNull { (schedule, shift) ->
-            shift?.let { schedule.name + " — " + it.emoji + " " + it.displayName(lang) }
+            shift?.let {
+                val marker = if (settings.showEmoji) it.emoji + " " else ""
+                schedule.name + " — " + marker + it.displayName(lang)
+            }
         }
 
         if (lines.isNotEmpty()) {

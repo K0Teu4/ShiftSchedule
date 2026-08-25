@@ -37,9 +37,9 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditDayModal(schedules: List<Schedule>, selectedScheduleId: Int?, date: LocalDate, currentShift: ShiftType?, onDismiss: () -> Unit, onSave: (Schedule, ShiftType, String, Int, Boolean) -> Unit, onClear: (Schedule) -> Unit = {}) {
+fun EditDayModal(schedules: List<Schedule>, selectedScheduleId: Int?, date: LocalDate, currentShift: ShiftType?, isHoliday: Boolean = false, onDismiss: () -> Unit, onSave: (Schedule, ShiftType, String, Int, Boolean) -> Unit, onClear: (Schedule) -> Unit = {}) {
     var selectedIds by remember(selectedScheduleId, schedules) { mutableStateOf(selectedScheduleId?.takeIf { id -> schedules.any { it.id == id } }?.let { setOf(it) } ?: schedules.firstOrNull()?.let { setOf(it.id) } ?: emptySet()) }
-    var shift by remember { mutableStateOf(currentShift ?: ShiftType.DAY) }
+    var shift by remember(date, currentShift) { mutableStateOf(currentShift ?: ShiftType.DAY) }
     var range by remember { mutableStateOf("this_day") }
     var days by remember { mutableStateOf(1) }
     var cycle by remember { mutableStateOf(false) }
@@ -49,32 +49,35 @@ fun EditDayModal(schedules: List<Schedule>, selectedScheduleId: Int?, date: Loca
     ModalBottomSheet(onDismissRequest = onDismiss, shape = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp)) {
             Text("${date.dayOfMonth}.${date.monthValue}.${date.year}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-            Text("Изменение смены", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp))
+            if (isHoliday) {
+                Text(tr("holiday_legend"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.padding(top = 3.dp))
+            }
+            Text(tr("edit_day_subtitle"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 3.dp))
             Spacer(Modifier.padding(top = 12.dp))
-            Text("Графики", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(tr("schedules"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             schedules.forEach { schedule ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = schedule.id in selectedIds, onCheckedChange = { checked -> selectedIds = if (checked) selectedIds + schedule.id else if (selectedIds.size > 1) selectedIds - schedule.id else selectedIds }); Text(schedule.name, Modifier.padding(start = 6.dp), fontWeight = FontWeight.SemiBold) }
             }
             Spacer(Modifier.padding(top = 12.dp))
-            Text("Смена", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(tr("shift_type"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             ShiftType.values().toList().chunked(2).forEach { row -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { type -> Surface(onClick = { shift = type }, shape = RoundedCornerShape(16.dp), color = if (type == shift) type.color.copy(alpha = .18f) else MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.weight(1f)) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { Text(type.emoji); Text(type.displayName(LocalLang.current), Modifier.padding(start = 7.dp), fontWeight = if (type == shift) FontWeight.Bold else FontWeight.Medium) } } } } }
             Spacer(Modifier.padding(top = 14.dp))
             if (period) {
-                Text("Продолжительность", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { if (days > 1) days-- }) { Text("−") }; Text("$days дн.", Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold); IconButton(onClick = { if (days < 90) days++ }) { Text("+") } }
-                Text("После периода", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 6.dp))
-                Choice("Продолжить текущий цикл", !cycle) { cycle = false }
-                Choice("Сдвинуть цикл на $days дн.", cycle) { cycle = true }
+                Text(tr("duration"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) { IconButton(onClick = { if (days > 1) days-- }) { Text("−") }; Text(tr("days_n", days), Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center, fontWeight = FontWeight.Bold); IconButton(onClick = { if (days < 90) days++ }) { Text("+") } }
+                Text(tr("after_period"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 6.dp))
+                Choice(tr("continue_pattern"), !cycle) { cycle = false }
+                Choice(tr("shift_cycle", days), cycle) { cycle = true }
             } else if (schedules.any { it.templateId != null }) {
-                Text("Применить", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Choice("Только этот день", range == "this_day") { range = "this_day" }
-                Choice("Этот и следующие", range == "this_and_following") { range = "this_and_following" }
-                Choice("Весь график", range == "entire_schedule") { range = "entire_schedule" }
+                Text(tr("apply_to"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Choice(tr("this_day"), range == "this_day") { range = "this_day" }
+                Choice(tr("this_following"), range == "this_and_following") { range = "this_and_following" }
+                Choice(tr("entire_schedule"), range == "entire_schedule") { range = "entire_schedule" }
             }
             Spacer(Modifier.padding(top = 14.dp))
-            Button(onClick = { selectedIds.forEach { id -> schedules.firstOrNull { it.id == id }?.let { onSave(it, shift, range, days, cycle) } }; onDismiss() }, enabled = selectedIds.isNotEmpty(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(17.dp)) { Text("Сохранить", fontWeight = FontWeight.Bold) }
-            if (hasException) OutlinedButton(onClick = { selectedIds.forEach { id -> schedules.firstOrNull { it.id == id }?.let(onClear) }; onDismiss() }, modifier = Modifier.fillMaxWidth().padding(top = 7.dp), shape = RoundedCornerShape(17.dp)) { Text("Сбросить изменение", color = MaterialTheme.colorScheme.error) }
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Отмена") }
+            Button(onClick = { selectedIds.forEach { id -> schedules.firstOrNull { it.id == id }?.let { onSave(it, shift, range, days, cycle) } }; onDismiss() }, enabled = selectedIds.isNotEmpty(), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(17.dp)) { Text(tr("save"), fontWeight = FontWeight.Bold) }
+            if (hasException) OutlinedButton(onClick = { selectedIds.forEach { id -> schedules.firstOrNull { it.id == id }?.let(onClear) }; onDismiss() }, modifier = Modifier.fillMaxWidth().padding(top = 7.dp), shape = RoundedCornerShape(17.dp)) { Text(tr("clear_day"), color = MaterialTheme.colorScheme.error) }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(tr("cancel")) }
             Spacer(Modifier.padding(bottom = 24.dp))
         }
     }

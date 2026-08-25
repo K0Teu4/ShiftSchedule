@@ -1,6 +1,8 @@
 package com.shiftschedule.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.Template
+import com.shiftschedule.app.util.tr
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -54,32 +57,29 @@ fun CreateScheduleModal(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text(text = "Новый график", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(text = tr("new_schedule"), style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
-                value = name, onValueChange = { name = it }, label = { Text("Название") },
-                placeholder = { Text("Например: Я, Жена, Петя") }, modifier = Modifier.fillMaxWidth(), singleLine = true
+                value = name, onValueChange = { name = it }, label = { Text(tr("name_label")) },
+                placeholder = { Text(tr("placeholder_name")) }, modifier = Modifier.fillMaxWidth(), singleLine = true
             )
             if (name.isNotEmpty() && trimmedName.isEmpty()) {
-                Text("Имя не может состоять только из пробелов", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+                Text(tr("name_error"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Цвет графика", style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            Text(tr("schedule_color"), style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 colorOptions.forEach { c ->
-                    Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(c)))
-                        .then(if (c == color) Modifier.padding(3.dp) else Modifier), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(c))).clickable { color = c }.then(if (c == color) Modifier.border(2.dp, Color.White, CircleShape) else Modifier), contentAlignment = Alignment.Center) {
                         if (c == color) Box(modifier = Modifier.size(30.dp).clip(CircleShape).background(Color.White))
-                    }.let { box ->
-                        // Simplified clickable wrapper for brevity in script
                     }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Шаблон", style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            Text(tr("template"), style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = selectedTemplateId == null, onClick = { selectedTemplateId = null })
-                Text(text = "Без шаблона (ручной)", modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyLarge)
+                Text(text = tr("no_template"), modifier = Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodyLarge)
             }
             templates.forEach { template ->
                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -91,11 +91,11 @@ fun CreateScheduleModal(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(value = startDate.format(dateFormatter), onValueChange = {}, label = { Text("Дата начала") }, modifier = Modifier.fillMaxWidth(), readOnly = true)
+            OutlinedTextField(value = startDate.format(dateFormatter), onValueChange = {}, label = { Text(tr("start_date")) }, modifier = Modifier.fillMaxWidth(), readOnly = true)
             Spacer(modifier = Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                androidx.compose.material3.Button(onClick = { onSave(Schedule(name = trimmedName, color = color, templateId = selectedTemplateId, startDate = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE))) }, enabled = canSave) { Text("Создать") }
-                androidx.compose.material3.OutlinedButton(onClick = onDismiss) { Text("Отмена") }
+                androidx.compose.material3.Button(onClick = { onSave(Schedule(name = trimmedName, color = color, templateId = selectedTemplateId, startDate = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE))) }, enabled = canSave) { Text(tr("create")) }
+                androidx.compose.material3.OutlinedButton(onClick = onDismiss) { Text(tr("cancel")) }
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
