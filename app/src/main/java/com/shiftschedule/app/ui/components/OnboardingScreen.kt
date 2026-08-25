@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.ui.theme.SharedDayWork
 import com.shiftschedule.app.ui.theme.SharedNightWork
+import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.tr
 
 @Composable
@@ -76,11 +77,16 @@ fun OnboardingScreen(onCreateClick: () -> Unit) {
 
 @Composable
 private fun PreviewCalendar() {
+    val lang = LocalLang.current
+    val day = if (lang == "en") "D" else "Д"
+    val night = if (lang == "en") "N" else "Н"
+    val twentyFour = if (lang == "en") "24h" else "С"
+    val off = if (lang == "en") "O" else "В"
     val cells = listOf(
-        "Д" to SharedDayWork, "Д" to SharedDayWork, "Н" to SharedNightWork, "Н" to SharedNightWork,
-        "24" to Color(0xFFFFB52E), "В" to MaterialTheme.colorScheme.surfaceVariant,
-        "Д" to SharedDayWork, "Н" to SharedNightWork, "24" to Color(0xFFFFB52E), "В" to MaterialTheme.colorScheme.surfaceVariant,
-        "Д" to SharedDayWork, "Н" to SharedNightWork
+        day to SharedDayWork, day to SharedDayWork, night to SharedNightWork, night to SharedNightWork,
+        twentyFour to Color(0xFFFFB52E), off to Color(0xFF64748B),
+        day to SharedDayWork, night to SharedNightWork, twentyFour to Color(0xFFFFB52E), off to Color(0xFF64748B),
+        day to SharedDayWork, night to SharedNightWork
     )
     Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
@@ -95,8 +101,8 @@ private fun PreviewCalendar() {
             cells.chunked(6).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     row.forEach { (label, color) ->
-                        Box(Modifier.weight(1f).size(42.dp).clip(RoundedCornerShape(11.dp)).background(color.copy(alpha = if (label == "В") .38f else .92f)), contentAlignment = Alignment.Center) {
-                            Text(label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = if (label == "В") MaterialTheme.colorScheme.onSurface else Color.Black)
+                        Box(Modifier.weight(1f).size(42.dp).clip(RoundedCornerShape(11.dp)).background(color.copy(alpha = if (label == off) .45f else .98f)), contentAlignment = Alignment.Center) {
+                            Text(label, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = Color.White)
                         }
                     }
                 }

@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,7 +29,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.ShiftType
-import androidx.compose.ui.graphics.StrokeCap
 import com.shiftschedule.app.ui.theme.SharedDayOff
 import com.shiftschedule.app.ui.theme.SharedDayWork
 import com.shiftschedule.app.ui.theme.SharedNightWork
@@ -58,7 +60,7 @@ fun SectorDayCell(
         else -> null
     }
     val outlineWidth = when {
-        isSharedDayWork || isSharedNightWork || isSharedDayOff -> 2.dp
+        isSharedDayWork || isSharedNightWork || isSharedDayOff -> 3.dp
         isToday -> 1.5.dp
         else -> 0.dp
     }
@@ -94,7 +96,7 @@ fun SectorDayCell(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxSize()
-                            .background(fill.copy(alpha = if (shift == null) 0.18f else 0.9f))
+                            .background(fill.copy(alpha = if (shift == null) 0.18f else 0.98f))
                     )
                 }
             }
@@ -122,10 +124,13 @@ fun SectorDayCell(
                 Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
-                    .size(6.dp)
+                    .size(18.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiary)
-            )
+                    .background(Color(0xFFFF4F87)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(11.dp))
+            }
         }
 
         if (outline != null && outlineWidth > 0.dp) {

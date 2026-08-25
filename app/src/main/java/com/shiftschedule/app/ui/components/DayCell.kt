@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +28,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.ShiftType
@@ -47,10 +49,10 @@ fun DayCell(
     val haptics = LocalHapticFeedback.current
     val lang = LocalLang.current
     val accent = shiftType?.color
-    val holidayColor = MaterialTheme.colorScheme.tertiary
+    val holidayColor = Color(0xFFFF4F87)
     val background = when {
         !isCurrentMonth -> MaterialTheme.colorScheme.surface.copy(alpha = 0.22f)
-        accent != null -> accent.copy(alpha = 0.9f)
+        accent != null -> accent.copy(alpha = 0.98f)
         isHoliday -> holidayColor.copy(alpha = 0.20f)
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
@@ -88,15 +90,6 @@ fun DayCell(
             shiftType?.let { type ->
                 if (showEmoji) {
                     Text(type.emoji, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
-                } else {
-                    Box(
-                        Modifier
-                            .padding(top = 3.dp)
-                            .background(type.color, RoundedCornerShape(6.dp))
-                            .padding(horizontal = if (type == ShiftType.TWENTY_FOUR) 5.dp else 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(type.shortLabel(lang), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = if (type == ShiftType.NIGHT || type == ShiftType.HOLIDAY || type == ShiftType.VACATION) Color.White else Color.Black, maxLines = 1, overflow = TextOverflow.Clip)
-                    }
                 }
             }
         }
@@ -104,10 +97,13 @@ fun DayCell(
             Box(
                 Modifier
                     .align(Alignment.TopEnd)
-                    .padding(5.dp)
-                    .size(7.dp)
-                    .background(holidayColor, CircleShape)
-            )
+                    .padding(4.dp)
+                    .size(18.dp)
+                    .background(holidayColor, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(11.dp))
+            }
         }
     }
 }

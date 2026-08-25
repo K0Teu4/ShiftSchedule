@@ -14,6 +14,18 @@ data class Template(
 ) {
     fun getPatternList(): List<String> = pattern.split(",").filter { it.isNotBlank() }
 
+    fun localizedName(lang: String): String {
+        if (!isBuiltIn || lang != "en") return name
+        return when (id) {
+            1 -> "2-2-2"
+            2 -> "1-1-1"
+            3 -> "1-1-2"
+            4 -> "5-2"
+            5 -> "24h-3"
+            else -> name
+        }
+    }
+
     fun displayDescription(lang: String): String {
         if (lang != "en") return description
         return when (id) {
