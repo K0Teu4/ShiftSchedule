@@ -85,16 +85,24 @@ class ShiftWidgetProvider : AppWidgetProvider() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val settings = SettingsDataStore(context).settingsFlow.first()
+                    // Создаём НОВЫЙ экземпляр DataStore для чтения свежих данных
+                    val settingsDataStore = SettingsDataStore(context.applicationContext)
+                    val settings = settingsDataStore.settingsFlow.first()
+                    
                     val dao = ShiftDatabase.getDatabase(context).shiftDao()
                     val schedules = dao.getAllSchedules().first()
                     val templates = dao.getAllTemplates().first()
 
+                    // ОПРЕДЕЛЯЕМ ЯЗЫК
                     val lang = when (settings.lang) {
                         "ru" -> "ru"
                         "en" -> "en"
                         else -> Strings.getSystemLanguage()
                     }
+                    
+                    // Отладка: можно раскомментировать для проверки
+                    // android.util.Log.d("Widget", "Language from settings: ${settings.lang}, resolved: $lang")
+                    
                     val locale = if (lang == "en") Locale.ENGLISH else Locale("ru")
 
                     val (bg, titleColor, textColor) = when (settings.theme) {

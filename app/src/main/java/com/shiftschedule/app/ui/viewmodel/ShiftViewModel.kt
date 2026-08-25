@@ -287,10 +287,13 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     fun updateSettings(newSettings: AppSettings) {
         viewModelScope.launch {
             try {
+                val old = settings.value
                 settingsDataStore.updateSettings(newSettings)
+                
+                // Обновляем виджет при любом изменении настроек (включая язык)
+                refreshWidget()
+                
                 if (newSettings.notifications) {
-                    // ВСЕГДА отменяем старое и создаём заново —
-                    // это чинит баг, когда после смены языка/времени напоминание не приходило
                     NotificationScheduler.cancel(getApplication())
                     NotificationScheduler.scheduleNext(getApplication(), newSettings.reminderTime)
                 } else {

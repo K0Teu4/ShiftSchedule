@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.shiftschedule.app"
+        applicationId = "com.shiftweave.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -18,17 +18,11 @@ android {
 
     buildTypes {
         release {
-            val releaseStoreFile = providers.gradleProperty("RELEASE_STORE_FILE").orNull
-            val releaseStorePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
-            val releaseKeyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orNull
-            val releaseKeyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
-            if (releaseStoreFile != null && releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null) {
-                signingConfig = signingConfigs.create("release") {
-                    storeFile = file(releaseStoreFile)
-                    storePassword = releaseStorePassword
-                    keyAlias = releaseKeyAlias
-                    keyPassword = releaseKeyPassword
-                }
+            signingConfig = signingConfigs.create("release") {
+                storeFile = rootProject.file("release.keystore")   // ← путь от корня проекта
+                storePassword = "ShiftWeave2026"
+                keyAlias = "shiftweave"
+                keyPassword = "ShiftWeave2026"
             }
             isMinifyEnabled = false
             isShrinkResources = false
