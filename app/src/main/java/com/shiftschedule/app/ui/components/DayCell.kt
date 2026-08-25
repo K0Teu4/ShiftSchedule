@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
@@ -106,6 +108,15 @@ fun DayCell(
                     .size(7.dp)
                     .background(holidayColor, CircleShape)
             )
+        }
+    }
+}
+
+@Composable
+fun WeekHeader(weekStart: String, lang: String = "ru", modifier: Modifier = Modifier) {
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+        com.shiftschedule.app.util.DateUtils.weekDayHeaders(weekStart, lang).forEach { day ->
+            Text(day, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }

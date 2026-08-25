@@ -86,28 +86,36 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
     var languageDialog by remember { mutableStateOf(false) }
     var weekDialog by remember { mutableStateOf(false) }
 
+    val notificationPermissionDeniedText = tr("notification_permission_denied")
     val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) viewModel.updateSettings(settings.copy(notifications = true))
-        else scope.launch { snackbar.showSnackbar(tr("notification_permission_denied")) }
+        else scope.launch { snackbar.showSnackbar(notificationPermissionDeniedText) }
     }
+
+    val exportedText = tr("exported")
+    val exportErrorText = tr("export_error")
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let {
             scope.launch {
                 runCatching {
                     val json = viewModel.exportData()
                     context.contentResolver.openOutputStream(it)?.use { out -> out.write(json.toByteArray(Charsets.UTF_8)) }
-                    snackbar.showSnackbar(tr("exported"))
-                }.onFailure { snackbar.showSnackbar(tr("export_error")) }
+                    snackbar.showSnackbar(exportedText)
+                }.onFailure { snackbar.showSnackbar(exportErrorText) }
             }
         }
     }
+
+    val importedText = tr("imported")
+    val importBadText = tr("import_bad")
+    val importErrorText = tr("import_error")
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             scope.launch {
                 runCatching {
                     val json = context.contentResolver.openInputStream(it)?.use { input -> input.readBytes().toString(Charsets.UTF_8) } ?: error("empty")
-                    if (viewModel.importData(json)) snackbar.showSnackbar(tr("imported")) else snackbar.showSnackbar(tr("import_bad"))
-                }.onFailure { snackbar.showSnackbar(tr("import_error")) }
+                    if (viewModel.importData(json)) snackbar.showSnackbar(importedText) else snackbar.showSnackbar(importBadText)
+                }.onFailure { snackbar.showSnackbar(importErrorText) }
             }
         }
     }

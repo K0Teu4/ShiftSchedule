@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -57,7 +56,7 @@ fun SwipeToDelete(
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { change, amount ->
                             change.consume()
-                            offsetX.snapTo((offsetX.value + amount).coerceAtMost(0f))
+                            scope.launch { offsetX.snapTo((offsetX.value + amount).coerceAtMost(0f)) }
                         },
                         onDragEnd = {
                             if (offsetX.value <= -threshold) {
