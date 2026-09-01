@@ -64,7 +64,11 @@ object StatsUtils {
                 if (shifts.all { it?.isNightLike == true }) stats["shared_night"] = stats.getValue("shared_night") + 1
             }
         }
-        stats["all_working"] = stats.getValue("shared_day") + stats.getValue("shared_night")
+        stats["all_working"] = DateUtils.getDaysInMonth(yearMonth).count { date ->
+            if (selected.size < 2) return@count false
+            val shifts = selected.map { schedule -> ShiftResolver.resolve(schedule, date, templates[schedule.templateId]) }
+            shifts.all { it?.isDayLike == true } || shifts.all { it?.isNightLike == true }
+        }
         return stats
     }
 

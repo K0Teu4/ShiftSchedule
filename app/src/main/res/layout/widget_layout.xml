@@ -4,15 +4,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:padding="12dp"
+    android:padding="10dp"
     android:background="#D91A1A1A">
 
-    <!-- Левая колонка: Сегодня -->
     <LinearLayout
+        android:id="@+id/widget_today_panel"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="4dp">
 
         <TextView
             android:id="@+id/widget_today_title"
@@ -28,30 +29,35 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textSize="11sp"
-            android:textColor="#BFBFBF" />
+            android:textColor="#B9C0C7" />
 
         <TextView
             android:id="@+id/widget_today_status"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="7dp"
+            android:gravity="top"
             android:textSize="12sp"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="5"
+            android:ellipsize="end"
             android:textColor="#FFFFFFFF" />
     </LinearLayout>
 
-    <!-- РАЗДЕЛИТЕЛЬ: FrameLayout вместо View (View запрещён в RemoteViews) -->
-    <FrameLayout
+    <View
         android:layout_width="1dp"
         android:layout_height="match_parent"
-        android:background="#3FFFFFFF" />
+        android:layout_marginVertical="4dp"
+        android:background="#40505A64" />
 
-    <!-- Правая колонка: Завтра -->
     <LinearLayout
+        android:id="@+id/widget_tomorrow_panel"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="4dp">
 
         <TextView
             android:id="@+id/widget_tomorrow_title"
@@ -67,15 +73,19 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textSize="11sp"
-            android:textColor="#BFBFBF" />
+            android:textColor="#B9C0C7" />
 
         <TextView
             android:id="@+id/widget_tomorrow_status"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="7dp"
+            android:gravity="top"
             android:textSize="12sp"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="5"
+            android:ellipsize="end"
             android:textColor="#FFFFFFFF" />
     </LinearLayout>
-
 </LinearLayout>

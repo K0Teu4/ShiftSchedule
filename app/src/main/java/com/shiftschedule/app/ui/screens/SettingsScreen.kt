@@ -62,6 +62,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shiftschedule.app.BuildConfig
 import com.shiftschedule.app.ui.components.AppHeader
 import com.shiftschedule.app.ui.components.SectionLabel
 import com.shiftschedule.app.ui.components.ShiftLegend
@@ -188,7 +189,7 @@ fun SettingsScreen(viewModel: ShiftViewModel) {
                 Spacer(Modifier.size(10.dp))
                 Text(tr("app_license"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.size(8.dp))
-                Text(tr("version_footer"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text(tr("version_footer", BuildConfig.VERSION_NAME), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.size(96.dp))
         }

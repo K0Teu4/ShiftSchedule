@@ -80,13 +80,12 @@ private fun PreviewCalendar() {
     val lang = LocalLang.current
     val day = if (lang == "en") "D" else "Д"
     val night = if (lang == "en") "N" else "Н"
-    val twentyFour = if (lang == "en") "24h" else "С"
     val off = if (lang == "en") "O" else "В"
     val cells = listOf(
         day to SharedDayWork, day to SharedDayWork, night to SharedNightWork, night to SharedNightWork,
-        twentyFour to Color(0xFFFFB52E), off to Color(0xFF64748B),
-        day to SharedDayWork, night to SharedNightWork, twentyFour to Color(0xFFFFB52E), off to Color(0xFF64748B),
-        day to SharedDayWork, night to SharedNightWork
+        off to Color(0xFF3D9CFF), off to Color(0xFF3D9CFF),
+        day to SharedDayWork, night to SharedNightWork, day to SharedDayWork, off to Color(0xFF3D9CFF),
+        night to SharedNightWork, day to SharedDayWork
     )
     Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {

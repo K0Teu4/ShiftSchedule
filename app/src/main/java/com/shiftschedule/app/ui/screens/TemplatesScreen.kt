@@ -81,12 +81,7 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
     var deleteTemplate by remember { mutableStateOf<Template?>(null) }
 
     val filteredSchedules = schedules.filter { it.name.contains(query, true) }
-    val filteredTemplates = templates.filter {
-        it.name.contains(query, true) ||
-        it.localizedName(lang).contains(query, true) ||
-        it.description.contains(query, true) ||
-        it.displayDescription(lang).contains(query, true)
-    }
+    val filteredTemplates = templates.filter { it.name.contains(query, true) || it.description.contains(query, true) }
     val reorderState = rememberReorderState()
     val scheduleReorderState = rememberReorderState()
     val userTemplates = filteredTemplates.filter { !it.isBuiltIn }
@@ -153,10 +148,10 @@ private fun ScheduleCardNew(schedule: Schedule, template: Template?, lang: Strin
     val accent = runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }.getOrDefault(MaterialTheme.colorScheme.primary)
     SurfaceCard(dragModifier) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(CircleShape).background(accent.copy(alpha = .18f)))
+            androidx.compose.foundation.layout.Box(Modifier.size(48.dp).clip(CircleShape).background(accent.copy(alpha = .18f)))
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(schedule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                Text(if (template != null) "${tr("rhythm")}: ${template.localizedName(lang)}" else tr("manual"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(if (template != null) "${tr("rhythm")}: ${template.name}" else tr("manual"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
             IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, tr("copy")) }
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, tr("edit")) }
@@ -171,7 +166,7 @@ private fun TemplateCardNew(template: Template, lang: String, showEmoji: Boolean
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(template.localizedName(lang), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Text(template.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                     Text(template.displayDescription(lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (template.isBuiltIn) Text(tr("built_in_label"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)

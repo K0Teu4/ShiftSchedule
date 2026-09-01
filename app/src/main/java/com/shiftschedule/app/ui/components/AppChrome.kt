@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.util.LocalLang
+import com.shiftschedule.app.ui.theme.PublicHoliday
 
 @Composable
 fun AppHeader(
@@ -156,7 +158,7 @@ fun ShiftStatPill(shift: ShiftType, value: String, showEmoji: Boolean, modifier:
 }
 
 @Composable
-fun ShiftLegend(showEmoji: Boolean = true, modifier: Modifier = Modifier) {
+fun ShiftLegend(showEmoji: Boolean = true, showHoliday: Boolean = false, modifier: Modifier = Modifier) {
     SurfaceCard(modifier) {
         Column(Modifier.padding(16.dp)) {
             Text(if (LocalLang.current == "en") "Legend" else "Обозначения", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -168,6 +170,20 @@ fun ShiftLegend(showEmoji: Boolean = true, modifier: Modifier = Modifier) {
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
                 if (index < (types.size + 1) / 2 - 1) Spacer(Modifier.height(9.dp))
+            }
+            if (showHoliday) {
+                Spacer(Modifier.height(9.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(20.dp).clip(CircleShape).background(PublicHoliday), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                    }
+                    Text(
+                        if (LocalLang.current == "en") "Russian public holiday" else "Праздник РФ",
+                        Modifier.padding(start = 8.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,12 +42,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.ui.components.AppHeader
@@ -77,27 +78,17 @@ fun CompareScreen(viewModel: ShiftViewModel) {
     val lang = LocalLang.current
     var detailsDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    // Фильтры
-    var showSharedDay by remember { mutableStateOf(true) }
-    var showSharedNight by remember { mutableStateOf(true) }
-    var showSharedOff by remember { mutableStateOf(true) }
-
-    LaunchedEffect(schedules, selectedIds) {
-        if (schedules.isNotEmpty() && selectedIds.isEmpty()) {
+    LaunchedEffect(schedules) {
+        val valid = selectedIds.filter { id -> schedules.any { it.id == id } }.toSet()
+        if (schedules.isNotEmpty() && valid.isEmpty()) {
             schedules.forEach { viewModel.toggleCompareSchedule(it.id) }
-        } else if (schedules.isNotEmpty() && selectedIds.isNotEmpty()) {
-            val validIds = schedules.map { it.id }.toSet()
-            val invalidIds = selectedIds.filter { it !in validIds }
-            invalidIds.forEach { viewModel.toggleCompareSchedule(it) }
+        } else {
+            selectedIds.filter { it !in valid }.forEach { viewModel.toggleCompareSchedule(it) }
         }
     }
 
     val selected = schedules.filter { it.id in selectedIds }
     val stats = viewModel.getMonthStats(selectedIds.toList(), currentMonth)
-
-    val filteredSharedDay = if (showSharedDay) stats["shared_day"] ?: 0 else 0
-    val filteredSharedNight = if (showSharedNight) stats["shared_night"] ?: 0 else 0
-    val filteredSharedOff = if (showSharedOff) stats["shared_off"] ?: 0 else 0
 
     Scaffold { padding ->
         LazyColumn(
@@ -111,7 +102,6 @@ fun CompareScreen(viewModel: ShiftViewModel) {
             if (schedules.isEmpty()) {
                 item { EmptyState(tr("no_schedules"), tr("create_one"), tr("add_schedule"), {}) }
             } else {
-                // Выбор графиков
                 item {
                     SurfaceCard {
                         Column(Modifier.padding(16.dp)) {
@@ -139,49 +129,31 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                         }
                     }
                 }
-
-                // Навигация по месяцу
-                item {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { viewModel.previousMonth() }) { Icon(Icons.Filled.ChevronLeft, tr("prev_month")) }
-                        Text(DateUtils.monthTitle(currentMonth, monthLocale()), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, maxLines = 1)
-                        IconButton(onClick = { viewModel.nextMonth() }) { Icon(Icons.Filled.ChevronRight, tr("next_month")) }
-                    }
-                }
-                item { WeekHeader(settings.weekStart, lang) }
-
-                // Календарь
-                item {
-                    CompareCalendarGrid(
-                        month = currentMonth,
-                        weekStart = settings.weekStart,
-                        selected = selected,
-                        viewModel = viewModel,
-                        showHolidays = settings.rfHolidays,
-                        showSharedDay = showSharedDay,
-                        showSharedNight = showSharedNight,
-                        showSharedOff = showSharedOff,
-                        onSwipeLeft = viewModel::nextMonth,
-                        onSwipeRight = viewModel::previousMonth,
-                        onDayClick = { detailsDate = it }
-                    )
-                }
-
-                // === БЛОК ФИЛЬТРОВ (теперь внизу) ===
                 item {
                     SurfaceCard {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(tr("filter_matches"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
-                            Spacer(Modifier.height(12.dp))
-
-                            FilterRow(showSharedDay, { showSharedDay = it }, SharedDayWork, tr("shared_day"), stats["shared_day"] ?: 0)
-                            FilterRow(showSharedNight, { showSharedNight = it }, SharedNightWork, tr("shared_night"), stats["shared_night"] ?: 0)
-                            FilterRow(showSharedOff, { showSharedOff = it }, SharedDayOff, tr("shared_short"), stats["shared_off"] ?: 0)
+                        Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .14f)) {
+                                Icon(Icons.Filled.Groups, null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
+                            }
+                            Column(Modifier.weight(1f).padding(start = 11.dp)) {
+                                Text(
+                                    if (selected.size >= 2 && (stats["shared_off"] ?: 0) > 0) tr("shared_off_found") else tr("shared_off"),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    if (selected.size >= 2) "${stats["shared_off"] ?: 0} ${tr("days_this_month")}" else tr("select_two_schedules"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
-
-                // === БЛОК "КАК ЧИТАТЬ КАЛЕНДАРЬ" (теперь внизу) ===
                 item {
                     SurfaceCard {
                         Column(Modifier.padding(16.dp)) {
@@ -193,25 +165,40 @@ fun CompareScreen(viewModel: ShiftViewModel) {
                             Spacer(Modifier.height(9.dp))
                             CompareLegendRow(SharedDayOff, tr("shared_short"), tr("compare_off_hint"))
                             Spacer(Modifier.height(8.dp))
-                            Text(tr("compare_24_hint"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(9.dp).clip(CircleShape).background(ShiftType.TWENTY_FOUR.color))
+                                Text(tr("compare_24_hint"), Modifier.padding(start = 8.dp).weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
-
-                // Итоговая сводка
+                item {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { viewModel.previousMonth() }) { Icon(Icons.Filled.ChevronLeft, tr("prev_month")) }
+                        Text(DateUtils.monthTitle(currentMonth, monthLocale()), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                        IconButton(onClick = { viewModel.nextMonth() }) { Icon(Icons.Filled.ChevronRight, tr("next_month")) }
+                    }
+                }
+                item { WeekHeader(settings.weekStart, lang) }
+                item {
+                    CompareCalendarGrid(
+                        month = currentMonth,
+                        weekStart = settings.weekStart,
+                        selected = selected,
+                        viewModel = viewModel,
+                        showHolidays = settings.rfHolidays,
+                        onSwipeLeft = viewModel::nextMonth,
+                        onSwipeRight = viewModel::previousMonth,
+                        onDayClick = { detailsDate = it }
+                    )
+                }
                 item {
                     SurfaceCard {
                         Column(Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .14f)) {
-                                    Icon(Icons.Filled.Groups, null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
-                                }
-                                Text(tr("month_summary"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 11.dp))
-                            }
-                            Spacer(Modifier.height(10.dp))
-                            SummaryRow(tr("shared_day"), filteredSharedDay, SharedDayWork)
-                            SummaryRow(tr("shared_night"), filteredSharedNight, SharedNightWork)
-                            SummaryRow(tr("shared_short"), filteredSharedOff, SharedDayOff)
+                            Text(tr("month_summary"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+                            SummaryRow(tr("shared_day"), stats["shared_day"] ?: 0, SharedDayWork)
+                            SummaryRow(tr("shared_night"), stats["shared_night"] ?: 0, SharedNightWork)
+                            SummaryRow(tr("shared_short"), stats["shared_off"] ?: 0, SharedDayOff)
                         }
                     }
                 }
@@ -249,41 +236,12 @@ fun CompareScreen(viewModel: ShiftViewModel) {
 }
 
 @Composable
-private fun FilterRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, color: Color, title: String, count: Int) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Box(
-            Modifier
-                .size(16.dp)
-                .border(2.dp, color, RoundedCornerShape(4.dp))
-        )
-        Text(
-            title,
-            Modifier.padding(start = 10.dp).weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            count.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
 private fun CompareCalendarGrid(
     month: YearMonth,
     weekStart: String,
     selected: List<Schedule>,
     viewModel: ShiftViewModel,
     showHolidays: Boolean,
-    showSharedDay: Boolean,
-    showSharedNight: Boolean,
-    showSharedOff: Boolean,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
     onDayClick: (LocalDate) -> Unit
@@ -317,20 +275,14 @@ private fun CompareCalendarGrid(
                         val pairs = selected.map { it.name to viewModel.getShiftForDate(it, date) }
                         val dayMatch = selected.size >= 2 && pairs.all { it.second?.isDayLike == true }
                         val nightMatch = selected.size >= 2 && pairs.all { it.second?.isNightLike == true }
-                        val offMatch = selected.size >= 2 && pairs.all { it.second == ShiftType.OFF }
-
-                        val showDayHighlight = showSharedDay && dayMatch
-                        val showNightHighlight = showSharedNight && nightMatch
-                        val showOffHighlight = showSharedOff && offMatch
-
                         SectorDayCell(
                             day = date.dayOfMonth,
                             shifts = pairs,
                             isToday = date == LocalDate.now(),
                             isCurrentMonth = true,
-                            isSharedDayOff = showOffHighlight,
-                            isSharedDayWork = showDayHighlight,
-                            isSharedNightWork = showNightHighlight,
+                            isSharedDayOff = selected.size >= 2 && pairs.all { it.second == ShiftType.OFF },
+                            isSharedDayWork = dayMatch,
+                            isSharedNightWork = nightMatch,
                             isHoliday = showHolidays && RuHolidays.isHoliday(date),
                             modifier = Modifier.weight(1f),
                             onClick = { onDayClick(date) }

@@ -71,4 +71,14 @@ class StatsUtilsTest {
         assertEquals(0, sharedNight["shared_day"])
     }
 
+    @Test
+    fun twentyFourPairIsOneSharedWorkingDate() {
+        val a = manual(1, mapOf("2026-08-10" to "24"))
+        val b = manual(2, mapOf("2026-08-10" to "24"))
+        val stats = StatsUtils.monthStats(listOf(a, b), emptyMap(), listOf(1, 2), YearMonth.of(2026, 8))
+        assertEquals(1, stats["shared_day"])
+        assertEquals(1, stats["shared_night"])
+        assertEquals(1, stats["all_working"])
+    }
+
 }

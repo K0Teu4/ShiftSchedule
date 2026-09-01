@@ -85,77 +85,64 @@ class ShiftWidgetProvider : AppWidgetProvider() {
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    // Создаём НОВЫЙ экземпляр DataStore для чтения свежих данных
-                    val settingsDataStore = SettingsDataStore(context.applicationContext)
-                    val settings = settingsDataStore.settingsFlow.first()
-                    
+                    val settings = SettingsDataStore(context).settingsFlow.first()
                     val dao = ShiftDatabase.getDatabase(context).shiftDao()
                     val schedules = dao.getAllSchedules().first()
                     val templates = dao.getAllTemplates().first()
 
-                    // ОПРЕДЕЛЯЕМ ЯЗЫК
                     val lang = when (settings.lang) {
                         "ru" -> "ru"
                         "en" -> "en"
                         else -> Strings.getSystemLanguage()
                     }
-                    
-                    // Отладка: можно раскомментировать для проверки
-                    // android.util.Log.d("Widget", "Language from settings: ${settings.lang}, resolved: $lang")
-                    
                     val locale = if (lang == "en") Locale.ENGLISH else Locale("ru")
-
-                    val (bg, titleColor, textColor) = when (settings.theme) {
-                        "light" -> Triple(0xE6FAF9F6.toInt(), 0xFF17171A.toInt(), 0xFF4A4A50.toInt())
-                        "sand" -> Triple(0xE6FFF6E9.toInt(), 0xFF241A0E.toInt(), 0xFF6E5A43.toInt())
-                        "sepia" -> Triple(0xE633291D.toInt(), 0xFFF4EAD9.toInt(), 0xFFD8CBB6.toInt())
-                        "midnight" -> Triple(0xE60A0F16.toInt(), 0xFFE4F6FF.toInt(), 0xFFAAB8CE.toInt())
-                        "ocean" -> Triple(0xE607404C.toInt(), 0xFFDFF6F9.toInt(), 0xFF9CCFD6.toInt())
-                        "forest" -> Triple(0xE6142019.toInt(), 0xFFE8F3E9.toInt(), 0xFFA8BCA9.toInt())
-                        "berry" -> Triple(0xE6221220.toInt(), 0xFFF6E9F4.toInt(), 0xFFC9B1C4.toInt())
-                        "plum" -> Triple(0xE62A1439.toInt(), 0xFFF1E9FF.toInt(), 0xFFC5B8D8.toInt())
-                        "graphite" -> Triple(0xE61A1C20.toInt(), 0xFFE8EAED.toInt(), 0xFFB9BDC5.toInt())
-                        else -> Triple(0xD91A1A1A.toInt(), 0xFFFFFFFF.toInt(), 0xFFBFBFBF.toInt())
+                    val systemLight = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_NO
+                    val lightWidget = settings.theme == "light" || (settings.theme == "system" && systemLight)
+                    val (bg, titleColor, textColor) = if (lightWidget) {
+                        Triple(0xE6FAF9F6.toInt(), 0xFF17171A.toInt(), 0xFF4A4A50.toInt())
+                    } else {
+                        Triple(0xE61A2025.toInt(), 0xFFF3F4F6.toInt(), 0xFFB9C0C7.toInt())
                     }
 
                     views.setInt(R.id.widget_root, "setBackgroundColor", bg)
+                    views.setInt(R.id.widget_today_panel, "setBackgroundColor", bg)
+                    views.setInt(R.id.widget_tomorrow_panel, "setBackgroundColor", bg)
                     views.setTextColor(R.id.widget_today_title, titleColor)
-                    views.setTextColor(R.id.widget_today_date, textColor)
-                    views.setTextColor(R.id.widget_today_status, titleColor)
                     views.setTextColor(R.id.widget_tomorrow_title, titleColor)
+                    views.setTextColor(R.id.widget_today_date, textColor)
                     views.setTextColor(R.id.widget_tomorrow_date, textColor)
+                    views.setTextColor(R.id.widget_today_status, titleColor)
                     views.setTextColor(R.id.widget_tomorrow_status, titleColor)
 
                     val today = LocalDate.now()
                     val tomorrow = today.plusDays(1)
                     val dateFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE", locale)
+                    val active = schedules.filter { it.isActive }
 
-                    fun buildStatusText(forDate: LocalDate): String {
-                        val active = schedules.filter { it.isActive }
+                    fun statusFor(date: LocalDate): String {
                         if (active.isEmpty()) return Strings.raw(lang, "no_schedules")
                         return buildString {
-                            active.forEach { schedule ->
+                            active.forEachIndexed { index, schedule ->
                                 val template = templates.find { it.id == schedule.templateId }
-                                val shift = ShiftResolver.resolve(schedule, forDate, template)
+                                val shift = ShiftResolver.resolve(schedule, date, template)
+                                if (index > 0) append("\n")
                                 if (shift != null) {
                                     val marker = if (settings.showEmoji) shift.emoji + " " else ""
-                                    append(marker + schedule.name + " — " + shift.displayName(lang))
+                                    append(marker).append(schedule.name).append(" — ").append(shift.displayName(lang))
                                 } else {
                                     val manual = if (lang == "en") "manual" else "ручной"
-                                    append("▪ " + schedule.name + " — " + manual)
+                                    append("▪ ").append(schedule.name).append(" — ").append(manual)
                                 }
-                                append("\n")
                             }
-                        }.trim()
+                        }
                     }
 
-                    views.setTextViewText(R.id.widget_today_title, Strings.raw(lang, "today"))
+                    views.setTextViewText(R.id.widget_today_title, Strings.raw(lang, "widget_today"))
+                    views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(lang, "widget_tomorrow"))
                     views.setTextViewText(R.id.widget_today_date, today.format(dateFormatter))
-                    views.setTextViewText(R.id.widget_today_status, buildStatusText(today))
-
-                    views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(lang, "tomorrow"))
                     views.setTextViewText(R.id.widget_tomorrow_date, tomorrow.format(dateFormatter))
-                    views.setTextViewText(R.id.widget_tomorrow_status, buildStatusText(tomorrow))
+                    views.setTextViewText(R.id.widget_today_status, statusFor(today))
+                    views.setTextViewText(R.id.widget_tomorrow_status, statusFor(tomorrow))
 
                     manager.updateAppWidget(id, views)
                 } catch (e: Exception) {
@@ -163,5 +150,3 @@ class ShiftWidgetProvider : AppWidgetProvider() {
                 }
             }
         }
-    }
-}

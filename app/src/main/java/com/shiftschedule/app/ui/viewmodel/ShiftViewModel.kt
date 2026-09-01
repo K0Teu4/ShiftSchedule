@@ -15,9 +15,9 @@ import com.shiftschedule.app.data.repository.ShiftRepository
 import com.shiftschedule.app.util.DateUtils
 import com.shiftschedule.app.util.ListUtils
 import com.shiftschedule.app.util.PatternUtils
-import com.shiftschedule.app.util.Strings
 import com.shiftschedule.app.domain.ShiftResolver
 import com.shiftschedule.app.util.StatsUtils
+import com.shiftschedule.app.util.Strings
 import com.shiftschedule.app.widget.ShiftWidgetProvider
 import com.shiftschedule.app.notifications.NotificationHelper
 import com.shiftschedule.app.notifications.NotificationScheduler
@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.util.UUID
 
 class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -68,14 +69,6 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun currentLang(): String = when (settings.value.lang) {
-        "ru" -> "ru"
-        "en" -> "en"
-        else -> Strings.getSystemLanguage()
-    }
-
-    private fun copySuffix(): String = if (currentLang() == "en") " (copy)" else " (копия)"
-
     private fun refreshWidget() {
         try {
             val context = getApplication<Application>()
@@ -95,7 +88,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSearchQuery(q: String) { _searchQuery.value = q }
     fun selectSchedule(id: Int?) { _selectedScheduleId.value = id }
-
+    
     fun toggleCompareSchedule(id: Int) {
         val current = _selectedCompareIds.value.toMutableSet()
         if (current.contains(id)) { if (current.size > 1) current.remove(id) } else { current.add(id) }
@@ -149,7 +142,8 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val maxIndex = repository.getMaxScheduleSortIndex()
-                repository.insertSchedule(schedule.copy(id = 0, name = schedule.name + copySuffix(), sortIndex = maxIndex + 1))
+                val lang = if (settings.value.lang == "en") "en" else "ru"
+                repository.insertSchedule(schedule.copy(id = 0, name = schedule.name + Strings.raw(lang, "copy_suffix"), sortIndex = maxIndex + 1))
                 refreshWidget()
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -162,7 +156,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
                 repository.insertTemplate(
                     template.copy(
                         id = 0,
-                        name = template.name + copySuffix(),
+                        name = template.name + Strings.raw(if (settings.value.lang == "en") "en" else "ru", "copy_suffix"),
                         isBuiltIn = false,
                         sortIndex = maxIndex + 1
                     )
@@ -200,7 +194,9 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
                 val maxIndex = repository.getMaxTemplateSortIndex()
                 val id = repository.insertTemplate(template.copy(name = cleanName, sortIndex = maxIndex + 1)).toInt()
                 onCreated(id)
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -277,7 +273,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun isTipSeen(id: String): Boolean = settings.value.seenTips.split(",").contains(id)
-
+    
     fun markTipSeen(id: String) {
         val current = settings.value.seenTips
         val new = if (current.isBlank()) id else current + "," + id
@@ -287,19 +283,14 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
     fun updateSettings(newSettings: AppSettings) {
         viewModelScope.launch {
             try {
-                val old = settings.value
                 settingsDataStore.updateSettings(newSettings)
-                
-                // Обновляем виджет при любом изменении настроек (включая язык)
-                refreshWidget()
-                
-                if (newSettings.notifications) {
-                    NotificationScheduler.cancel(getApplication())
-                    NotificationScheduler.scheduleNext(getApplication(), newSettings.reminderTime)
-                } else {
+                if (!newSettings.notifications) {
                     NotificationScheduler.cancel(getApplication())
                     NotificationHelper.cancelSummaryNotification(getApplication())
+                } else if (newSettings.notifications) {
+                    NotificationScheduler.scheduleNext(getApplication(), newSettings.reminderTime)
                 }
+                refreshWidget()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -346,3 +337,6 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
         return StatsUtils.yearStats(allSchedules.value, allTemplates.value.associateBy { it.id }, scheduleIds, year)
     }
 }
+
+
+

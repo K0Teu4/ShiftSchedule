@@ -1,41 +1,58 @@
-# Shift Schedule (График смен)
+# ShiftWeave
 
-Удобное Android-приложение для управления, отслеживания и планирования рабочих смен.
+Android-приложение для планирования рабочих смен и сравнения нескольких графиков.
 
-## ✨ Возможности
-- 📅 **Множественные графики**: Создание и ведение нескольких расписаний одновременно.
-- 🔄 **Шаблоны смен**: Использование встроенных и создание собственных шаблонов.
-- 🎨 **Темы оформления**: 11 тем оформления, включая Material You.
-- 🔔 **Уведомления**: Настраиваемые напоминания о сменах.
-- 💾 **Бэкапы**: Экспорт и импорт всех данных в формате JSON.
-- 📱 **Виджет**: Быстрый просмотр текущей смены на главном экране.
-- 📊 **Статистика**: Подсчет отработанных часов и смен по месяцам/годам.
-- 🌍 **Мультиязычность**: Поддержка системного языка.
+## Возможности
 
-## 🛠 Стек технологий
-- **UI:** Jetpack Compose, Material 3
-- **Архитектура:** MVVM, Clean Architecture elements
-- **База данных:** Room
-- **Настройки:** DataStore
-- **Асинхронность:** Kotlin Coroutines & Flow
-- **Навигация:** Compose Navigation
+- Несколько рабочих графиков на одном устройстве
+- Встроенные и пользовательские шаблоны смен
+- Типы смен: день, ночь, сутки, выходной, больничный, отпуск и праздник
+- Календарь с яркой цветовой системой и отметками официальных праздников РФ
+- Сравнение графиков: общий день, общая ночь, общий выходной
+- Сутки учитываются и как дневная, и как ночная смена в механике совпадений
+- Уведомления о сменах на завтра с настраиваемым временем
+- Виджет с отдельными блоками «Сегодня» и «Завтра»
+- Экспорт и импорт данных в JSON
+- Русский и английский языки, включая виджет
+- Выбор первого дня недели
+- Тёмная, светлая и системная темы
+- Работа без интернета: данные хранятся локально
 
-## 🚀 Сборка
-1. Клонируйте репозиторий:
-   ```bash
-   git clone https://github.com/K0Teu4/ShiftSchedule.git
-   ```
-2. Откройте проект в Android Studio (Hedgehog или новее).
-3. Дождитесь синхронизации Gradle и запустите на устройстве/эмуляторе.
-## Architecture
-- `domain/ShiftResolver` is the single source of truth for resolving a shift for a date.
-- Calendar, statistics, notifications and the widget use the same resolver semantics.
-- Room upgrades are explicit; destructive migration is allowed only on downgrade.
-- JSON restore is schema-validated and performed atomically in a Room transaction.
-- Release signing credentials are never stored in the repository.
+## Технологии
 
-## Release signing
-Supply these Gradle properties from a local `~/.gradle/gradle.properties` or CI secret store:
+- Kotlin
+- Jetpack Compose
+- Material 3
+- MVVM
+- Room
+- DataStore
+- Kotlin Coroutines / Flow
+- WorkManager
+- Compose Navigation
+
+## Сборка
+
+Откройте проект в Android Studio и выполните синхронизацию Gradle.
+
+Debug APK:
+
+```text
+./gradlew assembleDebug
+```
+
+Release APK:
+
+```text
+./gradlew assembleRelease
+```
+
+Unit-тесты:
+
+```text
+./gradlew test
+```
+
+Для release-подписи задайте Gradle properties:
 
 ```text
 RELEASE_STORE_FILE=/absolute/path/to/release.keystore
@@ -44,25 +61,8 @@ RELEASE_KEY_ALIAS=...
 RELEASE_KEY_PASSWORD=...
 ```
 
-A debug build does not require release signing credentials.
+## Версия
 
-## UI/UX redesign
+Версия приложения: 1.1
 
-The current branch contains a full visual/product redesign focused on the core question: **what shift do I have today and when is the next one?**
-
-### Design principles
-- The calendar is a glanceable primary surface, not a spreadsheet.
-- Current and next shifts are surfaced before the month grid.
-- Statistics are compact and secondary to the schedule.
-- Editing uses bottom sheets with progressive disclosure instead of dense dialogs.
-- Built-in templates are treated as reusable presets; custom templates remain editable.
-- Settings are grouped by intent: appearance, notifications, calculations, data and controls.
-- Empty states explain the next useful action.
-- Themes share the same component geometry and typography hierarchy.
-- Long-press remains available for multi-schedule day comparison, but the primary tap path is always explicit.
-
-### Main navigation
-1. **Calendar** — current shift, next shift, month, quick edit.
-2. **Templates** — schedules and reusable shift patterns.
-3. **Compare** — shared days off and multi-schedule calendar, with month/year views.
-4. **Settings** — appearance, notifications, calculations, backup and controls.
+Версия 1.1 сохраняет существующую модель данных и основные пользовательские сценарии. Изменения сосредоточены на визуальной читаемости календаря, сравнении графиков, праздниках РФ, онбординге, виджете, локализации и исправлении мелких UX-проблем.

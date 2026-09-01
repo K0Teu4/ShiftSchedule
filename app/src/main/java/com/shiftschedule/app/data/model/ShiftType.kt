@@ -12,7 +12,7 @@ enum class ShiftType(
     DAY("D", "День", "Day", "☀️", Color(0xFF2FE36B)),
     NIGHT("N", "Ночь", "Night", "🌙", Color(0xFF8F82FF)),
     TWENTY_FOUR("24", "Сутки", "24 hours", "🕐", Color(0xFFFFB52E)),
-    OFF("O", "Выходной", "Day off", "🏠", Color(0xFF64748B)),
+    OFF("O", "Выходной", "Day off", "🏠", Color(0xFF3D9CFF)),
     SICK("S", "Больничный", "Sick leave", "🤒", Color(0xFFFF4B4B)),
     VACATION("V", "Отпуск", "Vacation", "🌴", Color(0xFF19D4C5)),
     HOLIDAY("H", "Праздник", "Holiday", "🎉", Color(0xFFFF3970));

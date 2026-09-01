@@ -33,6 +33,7 @@ import com.shiftschedule.app.ui.theme.SharedDayOff
 import com.shiftschedule.app.ui.theme.SharedDayWork
 import com.shiftschedule.app.ui.theme.SharedNightWork
 import com.shiftschedule.app.util.LocalLang
+import com.shiftschedule.app.ui.theme.PublicHoliday
 
 @Composable
 fun SectorDayCell(
@@ -60,7 +61,7 @@ fun SectorDayCell(
         else -> null
     }
     val outlineWidth = when {
-        isSharedDayWork || isSharedNightWork || isSharedDayOff -> 3.dp
+        isSharedDayWork || isSharedNightWork || isSharedDayOff -> 2.5.dp
         isToday -> 1.5.dp
         else -> 0.dp
     }
@@ -123,13 +124,14 @@ fun SectorDayCell(
             Box(
                 Modifier
                     .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(18.dp)
+                    .padding(3.dp)
+                    .size(20.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFF4F87)),
+                    .background(PublicHoliday)
+                    .border(1.5.dp, Color.White.copy(alpha = 0.92f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(11.dp))
+                Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(12.dp))
             }
         }
 

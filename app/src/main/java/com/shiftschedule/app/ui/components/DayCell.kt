@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiftschedule.app.data.model.ShiftType
 import com.shiftschedule.app.util.LocalLang
+import com.shiftschedule.app.ui.theme.PublicHoliday
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -49,7 +50,7 @@ fun DayCell(
     val haptics = LocalHapticFeedback.current
     val lang = LocalLang.current
     val accent = shiftType?.color
-    val holidayColor = Color(0xFFFF4F87)
+    val holidayColor = PublicHoliday
     val background = when {
         !isCurrentMonth -> MaterialTheme.colorScheme.surface.copy(alpha = 0.22f)
         accent != null -> accent.copy(alpha = 0.98f)
@@ -97,12 +98,13 @@ fun DayCell(
             Box(
                 Modifier
                     .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(18.dp)
-                    .background(holidayColor, CircleShape),
+                    .padding(3.dp)
+                    .size(20.dp)
+                    .background(holidayColor, CircleShape)
+                    .border(1.5.dp, Color.White.copy(alpha = 0.92f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(11.dp))
+                Icon(Icons.Filled.Star, null, tint = Color.White, modifier = Modifier.size(12.dp))
             }
         }
     }

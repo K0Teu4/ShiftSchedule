@@ -235,7 +235,7 @@ fun CalendarScreen(viewModel: ShiftViewModel) {
                     }
                 }
             }
-            item { ShiftLegend(showEmoji = settings.showEmoji) }
+            item { ShiftLegend(showEmoji = settings.showEmoji, showHoliday = settings.rfHolidays) }
             item { Spacer(Modifier.height(84.dp)) }
         }
     }

@@ -4,45 +4,21 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- мягкая тень (3 слоя) -->
-    <path
-        android:fillColor="#FF000000"
-        android:fillAlpha="0.06"
-        android:pathData="M32.5,44 h43 a9,9 0 0 1 9,9 v27 a9,9 0 0 1 -9,9 h-43 a9,9 0 0 1 -9,-9 v-27 a9,9 0 0 1 9,-9 z" />
-    <path
-        android:fillColor="#FF000000"
-        android:fillAlpha="0.08"
-        android:pathData="M33,42 h42 a8,8 0 0 1 8,8 v28 a8,8 0 0 1 -8,8 h-42 a8,8 0 0 1 -8,-8 v-28 a8,8 0 0 1 8,-8 z" />
-    <path
-        android:fillColor="#FF000000"
-        android:fillAlpha="0.10"
-        android:pathData="M33.5,40 h41 a7,7 0 0 1 7,7 v29 a7,7 0 0 1 -7,7 h-41 a7,7 0 0 1 -7,-7 v-29 a7,7 0 0 1 7,-7 z" />
-
-    <!-- тело календаря -->
     <path
         android:fillColor="#FFFFFFFF"
         android:pathData="M34,38 h40 a6,6 0 0 1 6,6 v30 a6,6 0 0 1 -6,6 h-40 a6,6 0 0 1 -6,-6 v-30 a6,6 0 0 1 6,-6 z" />
-
-    <!-- шапка: темнее фона, чтобы не сливалась -->
     <path
-        android:fillColor="#FF4643BC"
+        android:fillColor="#FF5856D6"
         android:pathData="M34,38 h40 a6,6 0 0 1 6,6 v6 h-52 v-6 a6,6 0 0 1 6,-6 z" />
-
-    <!-- ушки -->
     <path
         android:fillColor="#FFFFFFFF"
         android:pathData="M42,32 h4 v10 h-4 z" />
     <path
         android:fillColor="#FFFFFFFF"
         android:pathData="M62,32 h4 v10 h-4 z" />
-
-    <!-- солнце -->
     <path
         android:fillColor="#FFFF9500"
         android:pathData="M46,64 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
-
-    <!-- луна -->
     <path
         android:fillColor="#FF5856D6"
         android:pathData="M64,64 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
