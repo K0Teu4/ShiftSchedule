@@ -9,11 +9,19 @@ class WidgetRefreshWorker(
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        return try {
+        var success = false
+        try {
             ShiftWidgetProvider.updateAll(applicationContext)
-            Result.success()
+            success = true
         } catch (e: Exception) {
-            Result.retry()
+            e.printStackTrace()
         }
+        try {
+            ShiftWidgetCompactProvider.updateAll(applicationContext)
+            success = true
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return if (success) Result.success() else Result.retry()
     }
 }

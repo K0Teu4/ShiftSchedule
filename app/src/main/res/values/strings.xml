@@ -7,7 +7,6 @@
     <string name="theme_system">System</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>
-    
     <string name="notifications">Notifications</string>
     <string name="reminders">Reminders</string>
     <string name="reminders_desc">Get notified before your shift</string>
@@ -28,6 +27,8 @@
     <string name="settings_controls_desc">Long press on day: edit. Swipe on schedule: delete. Tap month header: go to today.</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="no_schedules">No schedules</string>
+    <string name="widget_compact_desc">Compact shift widget (2x2)</string>
 </resources>
-
-

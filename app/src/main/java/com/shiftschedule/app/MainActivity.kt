@@ -24,14 +24,14 @@ import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.Strings
 import androidx.compose.runtime.CompositionLocalProvider
 import com.shiftschedule.app.widget.ShiftWidgetProvider
-
+import com.shiftschedule.app.widget.ShiftWidgetCompactProvider
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        updateWidget()
+        updateWidgets()
 
         setContent {
             val viewModel: ShiftViewModel = viewModel()
@@ -63,16 +63,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun updateWidget() {
+    private fun updateWidgets() {
         val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(ComponentName(this, ShiftWidgetProvider::class.java))
-        if (ids.isNotEmpty()) {
-            val intent = Intent(this, ShiftWidgetProvider::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        updateWidgetIds(manager, ShiftWidgetProvider::class.java)
+        updateWidgetIds(manager, ShiftWidgetCompactProvider::class.java)
+    }
+
+    private fun updateWidgetIds(manager: AppWidgetManager, providerClass: Class<*>) {
+        try {
+            val ids = manager.getAppWidgetIds(ComponentName(this, providerClass))
+            if (ids.isNotEmpty()) {
+                val intent = Intent(this, providerClass).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                }
+                sendBroadcast(intent)
             }
-            sendBroadcast(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
-

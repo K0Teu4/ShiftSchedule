@@ -25,7 +25,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-class ShiftWidgetProvider : AppWidgetProvider() {
+class ShiftWidgetCompactProvider : AppWidgetProvider() {
 
     override fun onUpdate(
         context: Context,
@@ -53,10 +53,12 @@ class ShiftWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
+        private const val WORK_NAME = "widget_compact_refresh"
+
         fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(
-                ComponentName(context, ShiftWidgetProvider::class.java)
+                ComponentName(context, ShiftWidgetCompactProvider::class.java)
             )
             for (id in ids) updateAppWidget(context, manager, id)
         }
@@ -65,26 +67,25 @@ class ShiftWidgetProvider : AppWidgetProvider() {
             val request = PeriodicWorkRequestBuilder<WidgetRefreshWorker>(15, TimeUnit.MINUTES)
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "widget_refresh",
+                WORK_NAME,
                 ExistingPeriodicWorkPolicy.KEEP,
                 request
             )
         }
 
         fun updateAppWidget(context: Context, manager: AppWidgetManager, id: Int) {
-            val views = RemoteViews(context.packageName, R.layout.widget_layout)
+            val views = RemoteViews(context.packageName, R.layout.widget_layout_compact)
 
             val openIntent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val pending = PendingIntent.getActivity(
-                context, 0, openIntent,
+                context, 100 + id, openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.widget_root, pending)
 
             // === СИНХРОННОЕ ОБНОВЛЕНИЕ-ЗАГЛУШКА ===
-            // Android требует немедленного updateAppWidget, иначе "не удалось загрузить"
             val langSync = Strings.getSystemLanguage()
             views.setTextViewText(R.id.widget_today_title, Strings.raw(langSync, "widget_today"))
             views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(langSync, "widget_tomorrow"))
@@ -115,6 +116,7 @@ class ShiftWidgetProvider : AppWidgetProvider() {
                         else -> Strings.getSystemLanguage()
                     }
                     val locale = if (lang == "en") Locale.ENGLISH else Locale("ru")
+
                     val uiMode = context.resources.configuration.uiMode
                     val nightMask = android.content.res.Configuration.UI_MODE_NIGHT_MASK
                     val nightNo = android.content.res.Configuration.UI_MODE_NIGHT_NO
@@ -146,41 +148,53 @@ class ShiftWidgetProvider : AppWidgetProvider() {
 
                     val today = LocalDate.now()
                     val tomorrow = today.plusDays(1)
-                    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE", locale)
+                    val dateFormatter = DateTimeFormatter.ofPattern("d MMM, EEE", locale)
                     val active = schedules.filter { it.isActive }
 
                     val noSchedulesMsg = if (lang == "en") "No schedules yet.\nCreate one in the app." else "Нет графиков.\nСоздайте в приложении."
 
-                    fun statusFor(date: LocalDate): String {
-                        if (active.isEmpty()) return noSchedulesMsg
-                        return buildString {
-                            active.forEachIndexed { index, schedule ->
-                                val template = templates.find { it.id == schedule.templateId }
-                                val shift = ShiftResolver.resolve(schedule, date, template)
-                                if (index > 0) append("\n")
-                                if (shift != null) {
-                                    val marker = if (settings.showEmoji) shift.emoji + " " else ""
-                                    append(marker).append(schedule.name).append(" \u2014 ").append(shift.displayName(lang))
-                                } else {
-                                    val manual = if (lang == "en") "manual" else "\u0440\u0443\u0447\u043d\u043e\u0439"
-                                    append("\u25aa ").append(schedule.name).append(" \u2014 ").append(manual)
-                                }
-                            }
-                        }
-                    }
+                    val todayStatus = buildStatusForDate(active, templates, settings, lang, today, noSchedulesMsg)
+                    val tomorrowStatus = buildStatusForDate(active, templates, settings, lang, tomorrow, noSchedulesMsg)
 
                     views.setTextViewText(R.id.widget_today_title, Strings.raw(lang, "widget_today"))
                     views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(lang, "widget_tomorrow"))
                     views.setTextViewText(R.id.widget_today_date, today.format(dateFormatter))
                     views.setTextViewText(R.id.widget_tomorrow_date, tomorrow.format(dateFormatter))
-                    views.setTextViewText(R.id.widget_today_status, statusFor(today))
-                    views.setTextViewText(R.id.widget_tomorrow_status, statusFor(tomorrow))
+                    views.setTextViewText(R.id.widget_today_status, todayStatus)
+                    views.setTextViewText(R.id.widget_tomorrow_status, tomorrowStatus)
 
                     manager.updateAppWidget(id, views)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
+        }
+
+        private fun buildStatusForDate(
+            active: List<com.shiftschedule.app.data.model.Schedule>,
+            templates: List<com.shiftschedule.app.data.model.Template>,
+            settings: com.shiftschedule.app.data.model.AppSettings,
+            lang: String,
+            date: LocalDate,
+            noSchedulesMsg: String
+        ): String {
+            if (active.isEmpty()) return noSchedulesMsg
+            val sb = StringBuilder()
+            val maxItems = 2
+            active.take(maxItems).forEachIndexed { index, schedule ->
+                val template = templates.find { it.id == schedule.templateId }
+                val shift = ShiftResolver.resolve(schedule, date, template)
+                if (index > 0) sb.append("\n")
+                if (shift != null) {
+                    val marker = if (settings.showEmoji) shift.emoji + " " else ""
+                    sb.append(marker).append(shift.displayName(lang))
+                } else {
+                    val manual = if (lang == "en") "manual" else "\u0440\u0443\u0447\u043d\u043e\u0439"
+                    sb.append("\u25aa ").append(manual)
+                }
+            }
+            if (active.size > maxItems) sb.append("\n\u2026")
+            return sb.toString()
         }
     }
 }
