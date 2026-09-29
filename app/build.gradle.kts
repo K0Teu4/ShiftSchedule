@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.shiftschedule.app"
+        applicationId = "com.shiftweave.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 2
@@ -61,7 +61,6 @@ android {
 }
 
 dependencies {
-    implementation("com.yandex.android:mobileads:7.8.0")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
@@ -86,3 +85,5 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("io.mockk:mockk:1.13.9")
 }
+
+

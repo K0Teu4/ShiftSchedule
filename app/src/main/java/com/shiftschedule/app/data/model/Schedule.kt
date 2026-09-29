@@ -16,6 +16,7 @@ data class Schedule(
     val templateId: Int?,
     val startDate: String,
     val isActive: Boolean = true,
+    val isPrimary: Boolean = false,
     val exceptions: Map<String, String> = emptyMap(),
     val cycleShifts: Map<String, Int> = emptyMap(),
     val sortIndex: Int = 0,

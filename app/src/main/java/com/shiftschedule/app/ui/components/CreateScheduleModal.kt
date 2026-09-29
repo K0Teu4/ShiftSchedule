@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.shiftschedule.app.data.model.Schedule
 import com.shiftschedule.app.data.model.Template
+import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.tr
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -48,6 +49,7 @@ fun CreateScheduleModal(
     var selectedTemplateId by remember { mutableStateOf<Int?>(null) }
     var startDate by remember { mutableStateOf(LocalDate.now()) }
     var color by remember { mutableStateOf("#5856D6") }
+    val lang = LocalLang.current
 
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
     val trimmedName = name.trim()
@@ -86,7 +88,7 @@ fun CreateScheduleModal(
                     RadioButton(selected = template.id == selectedTemplateId, onClick = { selectedTemplateId = template.id })
                     Column(modifier = Modifier.padding(start = 8.dp)) {
                         Text(text = template.name, style = MaterialTheme.typography.bodyLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
-                        Text(text = template.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = template.displayDescription(lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
             }

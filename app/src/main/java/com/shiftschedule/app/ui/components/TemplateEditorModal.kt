@@ -174,7 +174,12 @@ fun TemplateEditorModal(
                             Template(
                                 id = if (editingBuiltIn) 0 else (initial?.id ?: 0),
                                 name = trimmed,
-                                description = description.trim(),
+                                description = description
+                                    .replace(Regex("\\s*(?:\\\\n|'n|\\n)\\s*", RegexOption.IGNORE_CASE), " · ")
+                                    .replace(Regex("\\s*[,;]\\s*"), " · ")
+                                    .replace(Regex("\\s*→\\s*"), " · ")
+                                    .replace(Regex("\\s+"), " ")
+                                    .trim(' ', '·', ',', ';'),
                                 pattern = pattern.joinToString(","),
                                 isBuiltIn = false,
                                 sortIndex = if (editingBuiltIn) 0 else (initial?.sortIndex ?: 0)

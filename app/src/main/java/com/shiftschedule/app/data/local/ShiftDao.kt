@@ -28,6 +28,18 @@ interface ShiftDao {
     @Delete
     suspend fun deleteSchedule(schedule: Schedule)
 
+    @Query("UPDATE schedules SET isPrimary = 0")
+    suspend fun clearPrimarySchedule()
+
+    @Query("UPDATE schedules SET isPrimary = 1 WHERE id = :id")
+    suspend fun markPrimarySchedule(id: Int)
+
+    @Transaction
+    suspend fun setPrimarySchedule(id: Int) {
+        clearPrimarySchedule()
+        markPrimarySchedule(id)
+    }
+
     @Query("DELETE FROM schedules")
     suspend fun deleteAllSchedules()
 

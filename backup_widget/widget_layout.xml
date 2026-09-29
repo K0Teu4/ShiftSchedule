@@ -4,9 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:baselineAligned="false"
     android:padding="10dp"
-    android:background="@drawable/widget_bg_dark">
+    android:background="#D91A1A1A">
 
     <LinearLayout
         android:id="@+id/widget_today_panel"
@@ -21,44 +20,33 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:textSize="12sp"
-            android:maxLines="1"
-            android:ellipsize="end"
+            android:textSize="14sp"
             android:textColor="#FFFFFFFF" />
 
         <TextView
             android:id="@+id/widget_today_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:textSize="9sp"
-            android:maxLines="2"
+            android:layout_marginTop="2dp"
+            android:textSize="11sp"
             android:textColor="#B9C0C7" />
 
-        <LinearLayout
-            android:id="@+id/widget_today_list"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="4dp"
-            android:orientation="vertical" />
-
         <TextView
-            android:id="@+id/widget_today_empty"
+            android:id="@+id/widget_today_status"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="7dp"
             android:gravity="top"
-            android:textSize="10sp"
-            android:maxLines="3"
-            android:visibility="gone"
+            android:textSize="12sp"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="5"
+            android:ellipsize="end"
             android:textColor="#FFFFFFFF" />
     </LinearLayout>
 
     <!-- РАЗДЕЛИТЕЛЬ: FrameLayout, т.к. View запрещён в RemoteViews -->
     <FrameLayout
-        android:id="@+id/widget_divider"
         android:layout_width="1dp"
         android:layout_height="match_parent"
         android:layout_marginTop="4dp"
@@ -78,38 +66,28 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:textSize="12sp"
-            android:maxLines="1"
-            android:ellipsize="end"
+            android:textSize="14sp"
             android:textColor="#FFFFFFFF" />
 
         <TextView
             android:id="@+id/widget_tomorrow_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:textSize="9sp"
-            android:maxLines="2"
+            android:layout_marginTop="2dp"
+            android:textSize="11sp"
             android:textColor="#B9C0C7" />
 
-        <LinearLayout
-            android:id="@+id/widget_tomorrow_list"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="4dp"
-            android:orientation="vertical" />
-
         <TextView
-            android:id="@+id/widget_tomorrow_empty"
+            android:id="@+id/widget_tomorrow_status"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="7dp"
             android:gravity="top"
-            android:textSize="10sp"
-            android:maxLines="3"
-            android:visibility="gone"
+            android:textSize="12sp"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="5"
+            android:ellipsize="end"
             android:textColor="#FFFFFFFF" />
     </LinearLayout>
 </LinearLayout>

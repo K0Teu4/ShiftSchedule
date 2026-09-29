@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
+import android.view.View
 import android.widget.RemoteViews
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -25,6 +27,23 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+private data class WidgetStyle(
+    val titleSp: Float,
+    val dateSp: Float,
+    val lineSp: Float,
+    val maxLines: Int,
+    val datePattern: String,
+    val fullNames: Boolean,
+    val mergeHeader: Boolean,
+    val compact: Boolean
+)
+
+private data class WidgetLine(
+    val scheduleId: Int,
+    val shiftText: String,
+    val nameText: String
+)
+
 class ShiftWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(
@@ -34,6 +53,16 @@ class ShiftWidgetProvider : AppWidgetProvider() {
     ) {
         for (id in appWidgetIds) updateAppWidget(context, appWidgetManager, id)
         schedulePeriodicRefresh(context)
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        updateAppWidget(context, appWidgetManager, appWidgetId)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -52,7 +81,15 @@ class ShiftWidgetProvider : AppWidgetProvider() {
         schedulePeriodicRefresh(context)
     }
 
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+    }
+
     companion object {
+        private const val WORK_NAME = "widget_refresh"
+        const val EXTRA_WIDGET_SCHEDULE_ID = "widget_schedule_id"
+
         fun updateAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(
@@ -65,17 +102,108 @@ class ShiftWidgetProvider : AppWidgetProvider() {
             val request = PeriodicWorkRequestBuilder<WidgetRefreshWorker>(15, TimeUnit.MINUTES)
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "widget_refresh",
+                WORK_NAME,
                 ExistingPeriodicWorkPolicy.KEEP,
                 request
             )
         }
 
+        // Текст растёт вместе с виджетом: 4 ступени по высоте, 3 по ширине
+        private fun styleFor(manager: AppWidgetManager, id: Int): WidgetStyle {
+            val opts = manager.getAppWidgetOptions(id)
+            val h = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 180)
+            val w = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250)
+            val wCompact = w < 170
+            val wNarrow = w < 220
+            val wWide = w >= 320
+            val shortP = "d MMM, EEE"
+            val midP = "d MMM, EEEE"
+            val fullP = "d MMMM, EEEE"
+            return when {
+                h < 110 -> WidgetStyle(11f, 8f, 9f, 1, shortP, false, true, wCompact && h >= 95)
+                h < 190 -> WidgetStyle(
+                    13f, 10f, 11f, 2,
+                    if (wNarrow) shortP else if (wWide) fullP else midP,
+                    wWide, false, wCompact && h >= 95
+                )
+                h < 280 -> WidgetStyle(
+                    15f, 11f, 11f, 3,
+                    if (wNarrow) shortP else if (wWide) fullP else midP,
+                    !wNarrow, false, false
+                )
+                else -> WidgetStyle(
+                    if (wWide) 18f else 16f,
+                    if (wWide) 13f else 12f,
+                    if (wWide) 14f else 13f,
+                    5,
+                    if (wNarrow) shortP else fullP,
+                    !wNarrow, false, false
+                )
+            }
+        }
+
+        private fun shortName(name: String): String {
+            val trimmed = name.trim().replace(Regex("\\s+"), " ")
+            if (trimmed.length <= 12) return trimmed
+            val firstWord = trimmed.substringBefore(' ')
+            if (firstWord.length in 1..12 && firstWord != trimmed) return firstWord
+            return trimmed.take(11) + "…"
+        }
+
+        private fun applyStatics(
+            views: RemoteViews,
+            style: WidgetStyle,
+            lang: String,
+            light: Boolean,
+            titleColor: Int,
+            textColor: Int
+        ) {
+            views.setInt(
+                R.id.widget_root, "setBackgroundResource",
+                if (light) R.drawable.widget_bg_light else R.drawable.widget_bg_dark
+            )
+            views.setInt(
+                R.id.widget_divider, "setBackgroundColor",
+                if (light) 0x334A4A50.toInt() else 0x40505A64.toInt()
+            )
+
+            views.setTextColor(R.id.widget_today_title, titleColor)
+            views.setTextColor(R.id.widget_tomorrow_title, titleColor)
+            views.setFloat(R.id.widget_today_title, "setTextSize", style.titleSp)
+            views.setFloat(R.id.widget_tomorrow_title, "setTextSize", style.titleSp)
+
+            views.setTextColor(R.id.widget_today_date, textColor)
+            views.setTextColor(R.id.widget_tomorrow_date, textColor)
+            views.setFloat(R.id.widget_today_date, "setTextSize", style.dateSp)
+            views.setFloat(R.id.widget_tomorrow_date, "setTextSize", style.dateSp)
+
+            views.setTextColor(R.id.widget_today_empty, titleColor)
+            views.setTextColor(R.id.widget_tomorrow_empty, titleColor)
+            views.setFloat(R.id.widget_today_empty, "setTextSize", style.lineSp)
+            views.setFloat(R.id.widget_tomorrow_empty, "setTextSize", style.lineSp)
+            views.setInt(R.id.widget_today_empty, "setMaxLines", style.maxLines + 1)
+            views.setInt(R.id.widget_tomorrow_empty, "setMaxLines", style.maxLines + 1)
+
+            if (style.mergeHeader) {
+                views.setViewVisibility(R.id.widget_today_date, View.GONE)
+                views.setViewVisibility(R.id.widget_tomorrow_date, View.GONE)
+            } else {
+                views.setViewVisibility(R.id.widget_today_date, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_tomorrow_date, View.VISIBLE)
+                views.setTextViewText(R.id.widget_today_title, Strings.raw(lang, "widget_today"))
+                views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(lang, "widget_tomorrow"))
+            }
+        }
+
         fun updateAppWidget(context: Context, manager: AppWidgetManager, id: Int) {
-            val views = RemoteViews(context.packageName, R.layout.widget_layout)
+            val style = styleFor(manager, id)
+            val views = RemoteViews(
+                context.packageName,
+                if (style.compact) R.layout.widget_layout_compact else R.layout.widget_layout
+            )
 
             val openIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val pending = PendingIntent.getActivity(
                 context, 0, openIntent,
@@ -83,25 +211,25 @@ class ShiftWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(R.id.widget_root, pending)
 
-            // === СИНХРОННОЕ ОБНОВЛЕНИЕ-ЗАГЛУШКА ===
-            // Android требует немедленного updateAppWidget, иначе "не удалось загрузить"
+            // === СИНХРОННО: заглушка ===
             val langSync = Strings.getSystemLanguage()
-            views.setTextViewText(R.id.widget_today_title, Strings.raw(langSync, "widget_today"))
-            views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(langSync, "widget_tomorrow"))
-            views.setTextViewText(R.id.widget_today_date, "...")
-            views.setTextViewText(R.id.widget_tomorrow_date, "...")
-            views.setTextViewText(R.id.widget_today_status, "")
-            views.setTextViewText(R.id.widget_tomorrow_status, "")
-            views.setInt(R.id.widget_root, "setBackgroundColor", 0xE61A2025.toInt())
-            views.setTextColor(R.id.widget_today_title, 0xFFF3F4F6.toInt())
-            views.setTextColor(R.id.widget_tomorrow_title, 0xFFF3F4F6.toInt())
-            views.setTextColor(R.id.widget_today_date, 0xFFB9C0C7.toInt())
-            views.setTextColor(R.id.widget_tomorrow_date, 0xFFB9C0C7.toInt())
-            views.setTextColor(R.id.widget_today_status, 0xFFF3F4F6.toInt())
-            views.setTextColor(R.id.widget_tomorrow_status, 0xFFF3F4F6.toInt())
+            applyStatics(views, style, langSync, false, 0xFFF3F4F6.toInt(), 0xFFB9C0C7.toInt())
+            if (style.mergeHeader) {
+                views.setTextViewText(R.id.widget_today_title, Strings.raw(langSync, "widget_today") + " · ...")
+                views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(langSync, "widget_tomorrow") + " · ...")
+            } else {
+                views.setTextViewText(R.id.widget_today_date, "...")
+                views.setTextViewText(R.id.widget_tomorrow_date, "...")
+            }
+            views.setViewVisibility(R.id.widget_today_empty, View.GONE)
+            views.setViewVisibility(R.id.widget_tomorrow_empty, View.GONE)
+            views.setViewVisibility(R.id.widget_today_list, View.VISIBLE)
+            views.setViewVisibility(R.id.widget_tomorrow_list, View.VISIBLE)
+            views.removeAllViews(R.id.widget_today_list)
+            views.removeAllViews(R.id.widget_tomorrow_list)
             manager.updateAppWidget(id, views)
 
-            // === АСИНХРОННОЕ ОБНОВЛЕНИЕ С РЕАЛЬНЫМИ ДАННЫМИ ===
+            // === АСИНХРОННО: реальные данные ===
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val settings = SettingsDataStore(context).settingsFlow.first()
@@ -121,60 +249,123 @@ class ShiftWidgetProvider : AppWidgetProvider() {
                     val systemLight = (uiMode and nightMask) == nightNo
                     val lightWidget = settings.theme == "light" || (settings.theme == "system" && systemLight)
 
-                    val bg: Int
                     val titleColor: Int
                     val textColor: Int
                     if (lightWidget) {
-                        bg = 0xE6FAF9F6.toInt()
                         titleColor = 0xFF17171A.toInt()
                         textColor = 0xFF4A4A50.toInt()
                     } else {
-                        bg = 0xE61A2025.toInt()
                         titleColor = 0xFFF3F4F6.toInt()
                         textColor = 0xFFB9C0C7.toInt()
                     }
 
-                    views.setInt(R.id.widget_root, "setBackgroundColor", bg)
-                    views.setInt(R.id.widget_today_panel, "setBackgroundColor", bg)
-                    views.setInt(R.id.widget_tomorrow_panel, "setBackgroundColor", bg)
-                    views.setTextColor(R.id.widget_today_title, titleColor)
-                    views.setTextColor(R.id.widget_tomorrow_title, titleColor)
-                    views.setTextColor(R.id.widget_today_date, textColor)
-                    views.setTextColor(R.id.widget_tomorrow_date, textColor)
-                    views.setTextColor(R.id.widget_today_status, titleColor)
-                    views.setTextColor(R.id.widget_tomorrow_status, titleColor)
+                    applyStatics(views, style, lang, lightWidget, titleColor, textColor)
 
                     val today = LocalDate.now()
                     val tomorrow = today.plusDays(1)
-                    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE", locale)
+                    val dateFormatter = DateTimeFormatter.ofPattern(style.datePattern, locale)
+                    val headerDateFormatter = DateTimeFormatter.ofPattern("d MMM", locale)
                     val active = schedules.filter { it.isActive }
+                    val primary = active.firstOrNull { it.isPrimary } ?: active.firstOrNull()
+                    val visibleSchedules = if (style.compact || style.maxLines <= 1) {
+                        listOfNotNull(primary)
+                    } else {
+                        active
+                    }
 
-                    val noSchedulesMsg = if (lang == "en") "No schedules yet.\nCreate one in the app." else "Нет графиков.\nСоздайте в приложении."
+                    val noSchedulesMsg = if (lang == "en")
+                        "No schedules yet.\nCreate one in the app."
+                    else
+                        "Нет графиков.\nСоздайте в приложении."
 
-                    fun statusFor(date: LocalDate): String {
-                        if (active.isEmpty()) return noSchedulesMsg
-                        return buildString {
-                            active.forEachIndexed { index, schedule ->
-                                val template = templates.find { it.id == schedule.templateId }
-                                val shift = ShiftResolver.resolve(schedule, date, template)
-                                if (index > 0) append("\n")
-                                if (shift != null) {
-                                    val marker = if (settings.showEmoji) shift.emoji + " " else ""
-                                    append(marker).append(schedule.name).append(" \u2014 ").append(shift.displayName(lang))
-                                } else {
-                                    val manual = if (lang == "en") "manual" else "\u0440\u0443\u0447\u043d\u043e\u0439"
-                                    append("\u25aa ").append(schedule.name).append(" \u2014 ").append(manual)
-                                }
+                    if (style.mergeHeader) {
+                        val primaryLabel = Strings.raw(lang, "widget_primary")
+                        views.setTextViewText(
+                            R.id.widget_today_title,
+                            Strings.raw(lang, "widget_today") + " · " + primaryLabel
+                        )
+                        views.setTextViewText(
+                            R.id.widget_tomorrow_title,
+                            Strings.raw(lang, "widget_tomorrow") + " · " + primaryLabel
+                        )
+                    } else {
+                        views.setTextViewText(R.id.widget_today_date, today.format(dateFormatter))
+                        views.setTextViewText(R.id.widget_tomorrow_date, tomorrow.format(dateFormatter))
+                    }
+
+                    fun linesFor(date: LocalDate): List<WidgetLine> {
+                        return visibleSchedules.map { schedule ->
+                            val template = templates.find { it.id == schedule.templateId }
+                            val shift = ShiftResolver.resolve(schedule, date, template)
+                            val shiftText = if (shift != null) {
+                                val marker = if (settings.showEmoji) shift.emoji + " " else ""
+                                marker + shift.displayName(lang)
+                            } else {
+                                val manual = if (lang == "en") "manual" else "ручной"
+                                "▪ " + manual
                             }
+                            val nameText = if (style.fullNames) schedule.name else shortName(schedule.name)
+                            WidgetLine(schedule.id, shiftText, nameText)
                         }
                     }
 
-                    views.setTextViewText(R.id.widget_today_title, Strings.raw(lang, "widget_today"))
-                    views.setTextViewText(R.id.widget_tomorrow_title, Strings.raw(lang, "widget_tomorrow"))
-                    views.setTextViewText(R.id.widget_today_date, today.format(dateFormatter))
-                    views.setTextViewText(R.id.widget_tomorrow_date, tomorrow.format(dateFormatter))
-                    views.setTextViewText(R.id.widget_today_status, statusFor(today))
-                    views.setTextViewText(R.id.widget_tomorrow_status, statusFor(tomorrow))
+                    fun fillColumn(listId: Int, emptyId: Int, date: LocalDate) {
+                        views.removeAllViews(listId)
+                        val lines = linesFor(date)
+                        if (lines.isEmpty()) {
+                            views.setViewVisibility(listId, View.GONE)
+                            views.setViewVisibility(emptyId, View.VISIBLE)
+                            views.setTextViewText(emptyId, noSchedulesMsg)
+                            return
+                        }
+                        views.setViewVisibility(emptyId, View.GONE)
+                        views.setViewVisibility(listId, View.VISIBLE)
+                        lines.take(style.maxLines).forEach { item ->
+                            val line = RemoteViews(context.packageName, R.layout.widget_line)
+                            val hiddenCount = (active.size - 1).coerceAtLeast(0)
+                            val shiftLabel = if ((style.compact || style.maxLines <= 1) && hiddenCount > 0) {
+                                val suffix = if (lang == "en") " · +$hiddenCount more" else " · +$hiddenCount ещё"
+                                item.shiftText + suffix
+                            } else {
+                                item.shiftText
+                            }
+                            line.setTextViewText(R.id.line_shift, shiftLabel)
+                            line.setTextViewText(R.id.line_name, item.nameText)
+                            line.setTextColor(R.id.line_shift, titleColor)
+                            line.setTextColor(R.id.line_name, textColor)
+                            line.setFloat(R.id.line_shift, "setTextSize", style.lineSp)
+                            line.setFloat(R.id.line_name, "setTextSize", style.lineSp)
+                            val clickIntent = Intent(context, MainActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                putExtra(EXTRA_WIDGET_SCHEDULE_ID, item.scheduleId)
+                            }
+                            val clickPending = PendingIntent.getActivity(
+                                context,
+                                item.scheduleId * 2 + if (date == LocalDate.now()) 0 else 1,
+                                clickIntent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
+                            line.setOnClickPendingIntent(R.id.line_root, clickPending)
+                            views.addView(listId, line)
+                        }
+                        val hidden = if (style.compact || style.maxLines <= 1) {
+                            (active.size - lines.take(style.maxLines).size).coerceAtLeast(0)
+                        } else {
+                            (lines.size - style.maxLines).coerceAtLeast(0)
+                        }
+                        if (hidden > 0 && !style.mergeHeader) {
+                            val more = RemoteViews(context.packageName, R.layout.widget_line)
+                            val moreText = if (lang == "en") "+$hidden more schedules" else "+$hidden ещё графика"
+                            more.setTextViewText(R.id.line_shift, moreText)
+                            more.setTextViewText(R.id.line_name, "")
+                            more.setTextColor(R.id.line_shift, textColor)
+                            more.setFloat(R.id.line_shift, "setTextSize", style.lineSp)
+                            views.addView(listId, more)
+                        }
+                    }
+
+                    fillColumn(R.id.widget_today_list, R.id.widget_today_empty, today)
+                    fillColumn(R.id.widget_tomorrow_list, R.id.widget_tomorrow_empty, tomorrow)
 
                     manager.updateAppWidget(id, views)
                 } catch (e: Exception) {

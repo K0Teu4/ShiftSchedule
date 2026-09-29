@@ -178,6 +178,7 @@ fun EditScheduleModal(
                         templateId = templateId,
                         startDate = DateUtils.formatDate(startDate),
                         isActive = initial?.isActive ?: true,
+                        isPrimary = initial?.isPrimary ?: false,
                         exceptions = initial?.exceptions ?: emptyMap(),
                         cycleShifts = initial?.cycleShifts ?: emptyMap()
                     ))

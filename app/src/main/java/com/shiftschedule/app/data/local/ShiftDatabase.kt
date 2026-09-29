@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [Schedule::class, Template::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(ExceptionsConverter::class, CycleShiftsConverter::class)
@@ -43,6 +43,13 @@ abstract class ShiftDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE schedules ADD COLUMN isPrimary INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("UPDATE schedules SET isPrimary = 1 WHERE id = (SELECT id FROM schedules ORDER BY sortIndex ASC, id ASC LIMIT 1)")
+            }
+        }
+
         fun getDatabase(context: Context): ShiftDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -50,7 +57,7 @@ abstract class ShiftDatabase : RoomDatabase() {
                     ShiftDatabase::class.java,
                     "shift_schedule_database"
                 )
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance

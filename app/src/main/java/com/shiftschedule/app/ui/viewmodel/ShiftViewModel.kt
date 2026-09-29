@@ -107,8 +107,9 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
                 val cleanName = schedule.name.trim().replace(Regex("\\s+"), " ")
                 if (cleanName.isEmpty()) return@launch
                 val maxIndex = repository.getMaxScheduleSortIndex()
+                val makePrimary = allSchedules.value.none { it.isActive } && allSchedules.value.isEmpty()
                 val insertedId = repository.insertSchedule(
-                    schedule.copy(id = 0, name = cleanName, sortIndex = maxIndex + 1)
+                    schedule.copy(id = 0, name = cleanName, isPrimary = makePrimary, sortIndex = maxIndex + 1)
                 ).toInt()
                 refreshWidget()
                 onCreated(insertedId)
@@ -120,6 +121,9 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun deleteScheduleNow(schedule: Schedule) {
         repository.deleteSchedule(schedule)
+        if (schedule.isPrimary) {
+            allSchedules.value.filter { it.id != schedule.id && it.isActive }.minByOrNull { it.sortIndex }?.let { repository.setPrimarySchedule(it.id) }
+        }
         refreshWidget()
     }
 
@@ -128,7 +132,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val maxIndex = repository.getMaxScheduleSortIndex()
                 val restoredId = repository.insertSchedule(
-                    schedule.copy(id = 0, sortIndex = maxIndex + 1)
+                    schedule.copy(id = 0, isPrimary = false, sortIndex = maxIndex + 1)
                 ).toInt()
                 refreshWidget()
                 onRestored(restoredId)
@@ -143,7 +147,7 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val maxIndex = repository.getMaxScheduleSortIndex()
                 val lang = if (settings.value.lang == "en") "en" else "ru"
-                repository.insertSchedule(schedule.copy(id = 0, name = schedule.name + Strings.raw(lang, "copy_suffix"), sortIndex = maxIndex + 1))
+                repository.insertSchedule(schedule.copy(id = 0, name = schedule.name + Strings.raw(lang, "copy_suffix"), isPrimary = false, sortIndex = maxIndex + 1))
                 refreshWidget()
             } catch (e: Exception) { e.printStackTrace() }
         }
@@ -167,6 +171,16 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateSchedule(schedule: Schedule) {
         viewModelScope.launch { try { repository.updateSchedule(schedule); refreshWidget() } catch (e: Exception) { e.printStackTrace() } }
+    }
+
+    fun setPrimarySchedule(id: Int) {
+        viewModelScope.launch {
+            try {
+                repository.setPrimarySchedule(id)
+                _selectedScheduleId.value = id
+                refreshWidget()
+            } catch (e: Exception) { e.printStackTrace() }
+        }
     }
 
     fun deleteSchedule(schedule: Schedule) {
@@ -321,7 +335,11 @@ class ShiftViewModel(application: Application) : AndroidViewModel(application) {
             }
             val templates = templatesById.values.sortedWith(compareByDescending<Template> { it.isBuiltIn }.thenBy { it.sortIndex }.thenBy { it.name })
 
-            repository.replaceAllData(data.schedules, templates)
+            val importedSchedules = data.schedules
+            val primaryId = importedSchedules.firstOrNull { it.isPrimary }?.id
+                ?: importedSchedules.minByOrNull { it.sortIndex }?.id
+            val normalizedSchedules = importedSchedules.map { it.copy(isPrimary = it.id == primaryId) }
+            repository.replaceAllData(normalizedSchedules, templates)
             refreshWidget()
             true
         } catch (e: Exception) {

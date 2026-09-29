@@ -20,6 +20,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -44,7 +45,7 @@ sealed class Screen(val route: String, val titleKey: String, val icon: androidx.
 }
 
 @Composable
-fun AppNavigation(viewModel: ShiftViewModel) {
+fun AppNavigation(viewModel: ShiftViewModel, widgetScheduleId: Int? = null) {
     val navController = rememberNavController()
     val entry by navController.currentBackStackEntryAsState()
     val destination = entry?.destination
@@ -55,6 +56,13 @@ fun AppNavigation(viewModel: ShiftViewModel) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState = true
+        }
+    }
+
+    LaunchedEffect(widgetScheduleId) {
+        widgetScheduleId?.let {
+            viewModel.selectSchedule(it)
+            navigate(Screen.Calendar.route)
         }
     }
 

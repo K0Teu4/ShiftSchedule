@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -102,7 +104,7 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
                 item { EmptyState(tr("no_schedules_yet"), tr("create_first"), tr("add_schedule"), { createSchedule = true }) }
             } else {
                 items(filteredSchedules, key = { it.id }) { schedule ->
-                    ScheduleCardNew(schedule, templates.firstOrNull { it.id == schedule.templateId }, lang, dragModifier = if (query.isBlank()) Modifier.dragContainer(scheduleReorderState, filteredSchedules.indexOfFirst { it.id == schedule.id }, 120f, filteredSchedules.size) else Modifier, onEdit = { editSchedule = schedule }, onCopy = { viewModel.duplicateSchedule(schedule) }, onDelete = { deleteSchedule = schedule })
+                    ScheduleCardNew(schedule, templates.firstOrNull { it.id == schedule.templateId }, lang, dragModifier = if (query.isBlank()) Modifier.dragContainer(scheduleReorderState, filteredSchedules.indexOfFirst { it.id == schedule.id }, 120f, filteredSchedules.size) else Modifier, onPrimary = { viewModel.setPrimarySchedule(schedule.id) }, onEdit = { editSchedule = schedule }, onCopy = { viewModel.duplicateSchedule(schedule) }, onDelete = { deleteSchedule = schedule })
                 }
             }
             item { Spacer(Modifier.height(6.dp)); SectionLabel(tr("built_in")) }
@@ -144,14 +146,22 @@ fun TemplatesScreen(viewModel: ShiftViewModel) {
 }
 
 @Composable
-private fun ScheduleCardNew(schedule: Schedule, template: Template?, lang: String, dragModifier: Modifier = Modifier, onEdit: () -> Unit, onCopy: () -> Unit, onDelete: () -> Unit) {
+private fun ScheduleCardNew(schedule: Schedule, template: Template?, lang: String, dragModifier: Modifier = Modifier, onPrimary: () -> Unit, onEdit: () -> Unit, onCopy: () -> Unit, onDelete: () -> Unit) {
     val accent = runCatching { Color(android.graphics.Color.parseColor(schedule.color)) }.getOrDefault(MaterialTheme.colorScheme.primary)
     SurfaceCard(dragModifier) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             androidx.compose.foundation.layout.Box(Modifier.size(48.dp).clip(CircleShape).background(accent.copy(alpha = .18f)))
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(schedule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(schedule.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f), maxLines = 1)
+                    if (schedule.isPrimary) Text(tr("primary_schedule"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
+                }
                 Text(if (template != null) "${tr("rhythm")}: ${template.name}" else tr("manual"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+            if (!schedule.isPrimary) {
+                IconButton(onClick = onPrimary) {
+                    Icon(Icons.Filled.StarBorder, tr("make_primary"))
+                }
             }
             IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, tr("copy")) }
             IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, tr("edit")) }
@@ -164,23 +174,56 @@ private fun ScheduleCardNew(schedule: Schedule, template: Template?, lang: Strin
 private fun TemplateCardNew(template: Template, lang: String, showEmoji: Boolean, dragModifier: Modifier = Modifier, onUse: () -> Unit, onEdit: () -> Unit, onCopy: () -> Unit, onDelete: (() -> Unit)?) {
     SurfaceCard(dragModifier) {
         Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            // 1. Текст шаблона
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(template.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                    Text(template.displayDescription(lang), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    template.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                if (template.isBuiltIn) {
+                    Text(
+                        tr("built_in_label"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 }
-                if (template.isBuiltIn) Text(tr("built_in_label"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 13.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                template.getPatternList().take(8).forEach { code ->
+            Text(
+                template.displayDescription(lang),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+
+            // 2. Ритм
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                template.getPatternList().forEach { code ->
                     val type = ShiftType.fromCode(code)
-                    if (type != null) androidx.compose.material3.Surface(shape = RoundedCornerShape(12.dp), color = type.color.copy(alpha = .16f)) {
+                    if (type != null) androidx.compose.material3.Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = type.color.copy(alpha = .16f)
+                    ) {
                         if (showEmoji) Text(type.emoji, modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp))
                         else Box(Modifier.padding(horizontal = 12.dp, vertical = 11.dp).size(9.dp).clip(CircleShape).background(type.color))
                     }
                 }
             }
-            Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+
+            // 3. Управление графиком
+            Row(
+                Modifier.fillMaxWidth().padding(top = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Button(onClick = onUse, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)) { Text(tr("use")) }
                 IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, tr("copy")) }
                 IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, tr("edit")) }

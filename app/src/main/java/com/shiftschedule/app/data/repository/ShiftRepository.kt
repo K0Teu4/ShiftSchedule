@@ -13,6 +13,7 @@ class ShiftRepository(private val shiftDao: ShiftDao) {
     suspend fun insertSchedule(schedule: Schedule): Long = shiftDao.insertSchedule(schedule)
     suspend fun updateSchedule(schedule: Schedule) = shiftDao.updateSchedule(schedule)
     suspend fun deleteSchedule(schedule: Schedule) = shiftDao.deleteSchedule(schedule)
+    suspend fun setPrimarySchedule(id: Int) = shiftDao.setPrimarySchedule(id)
     suspend fun deleteAllSchedules() = shiftDao.deleteAllSchedules()
     suspend fun getMaxScheduleSortIndex(): Int = shiftDao.getMaxScheduleSortIndex()
     suspend fun getMaxTemplateSortIndex(): Int = shiftDao.getMaxTemplateSortIndex()

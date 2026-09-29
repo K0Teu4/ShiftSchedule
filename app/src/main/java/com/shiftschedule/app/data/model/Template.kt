@@ -15,15 +15,24 @@ data class Template(
     fun getPatternList(): List<String> = pattern.split(",").filter { it.isNotBlank() }
 
     fun displayDescription(lang: String): String {
-        if (lang != "en") return description
-        return when (id) {
-            1 -> "2 day, 2 night, 2 days off"
-            2 -> "1 day, 1 night, 1 day off"
-            3 -> "1 day, 1 night, 2 days off"
-            4 -> "5 days, 2 days off"
-            5 -> "1 24-hour shift, 3 days off"
-            else -> description
+        val cleaned = description
+            .replace(Regex("\\s*(?:\\\\n|'n|\\n)\\s*", RegexOption.IGNORE_CASE), " · ")
+            .replace(Regex("\\s*[,;]\\s*"), " · ")
+            .replace(Regex("\\s*→\\s*"), " · ")
+            .replace(Regex("\\s+"), " ")
+            .trim(' ', '·', ',', ';')
+
+        if (lang == "en") {
+            return when (id) {
+                1 -> "2 day, 2 night, 2 days off"
+                2 -> "1 day, 1 night, 1 day off"
+                3 -> "1 day, 1 night, 2 days off"
+                4 -> "5 days, 2 days off"
+                5 -> "1 24-hour shift, 3 days off"
+                else -> cleaned
+            }
         }
+        return cleaned
     }
 
     companion object {

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,13 +56,14 @@ fun OnboardingScreen(onCreateClick: () -> Unit) {
             Spacer(Modifier.size(30.dp))
             Text(tr("onb_hero"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center)
             Spacer(Modifier.size(10.dp))
-            Text(tr("onb_intro"), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            Text(tr("onb_intro"), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, maxLines = 3)
             Spacer(Modifier.size(22.dp))
             PreviewCalendar()
             Spacer(Modifier.size(18.dp))
             SectionFeature(Icons.Filled.CalendarMonth, tr("onb1"), tr("onb1d"))
             SectionFeature(Icons.Filled.CompareArrows, tr("onb2"), tr("onb2d"))
-            SectionFeature(Icons.Filled.NotificationsNone, tr("onb3"), tr("onb3d"))
+            SectionFeature(Icons.Filled.Widgets, tr("onb3"), tr("onb3d"))
+            SectionFeature(Icons.Filled.NotificationsNone, tr("onb4"), tr("onb4d"))
             Spacer(Modifier.size(8.dp))
         }
         Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 1.dp) {
@@ -119,7 +121,7 @@ private fun SectionFeature(icon: androidx.compose.ui.graphics.vector.ImageVector
         }
         Column(Modifier.padding(start = 12.dp)) {
             Text(title, fontWeight = FontWeight.Bold, maxLines = 1)
-            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp), maxLines = 3)
         }
     }
 }

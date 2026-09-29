@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,16 +24,14 @@ import com.shiftschedule.app.util.LocalLang
 import com.shiftschedule.app.util.Strings
 import androidx.compose.runtime.CompositionLocalProvider
 import com.shiftschedule.app.widget.ShiftWidgetProvider
+import com.shiftschedule.app.widget.ShiftWidgetCompactProvider
 
 class MainActivity : ComponentActivity() {
-    private var widgetScheduleId by mutableStateOf<Int?>(null)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        widgetScheduleId = intent.getIntExtra(ShiftWidgetProvider.EXTRA_WIDGET_SCHEDULE_ID, -1).takeIf { it > 0 }
-        updateWidget()
+        updateWidgets()
 
         setContent {
             val viewModel: ShiftViewModel = viewModel()
@@ -61,25 +56,24 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalLang provides lang) {
                 ShiftScheduleTheme(theme = settings.theme) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        AppNavigation(viewModel, widgetScheduleId)
+                        AppNavigation(viewModel)
                     }
                 }
             }
         }
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        widgetScheduleId = intent.getIntExtra(ShiftWidgetProvider.EXTRA_WIDGET_SCHEDULE_ID, -1).takeIf { it > 0 }
+    private fun updateWidgets() {
+        val manager = AppWidgetManager.getInstance(this)
+        updateWidgetIds(manager, ShiftWidgetProvider::class.java)
+        updateWidgetIds(manager, ShiftWidgetCompactProvider::class.java)
     }
 
-    private fun updateWidget() {
+    private fun updateWidgetIds(manager: AppWidgetManager, providerClass: Class<*>) {
         try {
-            val manager = AppWidgetManager.getInstance(this)
-            val ids = manager.getAppWidgetIds(ComponentName(this, ShiftWidgetProvider::class.java))
+            val ids = manager.getAppWidgetIds(ComponentName(this, providerClass))
             if (ids.isNotEmpty()) {
-                val intent = Intent(this, ShiftWidgetProvider::class.java).apply {
+                val intent = Intent(this, providerClass).apply {
                     action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
                 }
